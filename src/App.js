@@ -6,6 +6,7 @@ import DatosPersonales from './views/DatosPersonales';
 import Compromisos from './views/Compromisos';
 import Calendario from './views/Calendario';
 import Asistencia from './views/Asistencia';
+import Informacion from './views/Informacion';
 
 const router = createBrowserRouter([
   { path: '/', element: <Inicio /> },
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
   { path: '/compromisos', element: <Compromisos /> },
   { path: '/calendario', element: <Calendario /> },
   { path: '/asistencia', element: <Asistencia /> },
+  {path: '/informacion', element: <Informacion /> }
 ]);
 
 function App() {

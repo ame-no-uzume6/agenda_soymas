@@ -13,8 +13,8 @@ const IconInfo = <FontAwesomeIcon icon={faCircleInfo} style={{ color: '#fff' }} 
 export default function DatosPersonales() {
   const navigate = useNavigate();
 
-  const calendario = () => {
-    navigate('/login');
+  const setRuta = (ruta) => {
+    navigate(ruta);
   };
 
   return (
@@ -32,22 +32,22 @@ export default function DatosPersonales() {
           esBotonInicio={false}
           texto="CALENDARIO"
           icon={IconCalendar}
-          onClick={calendario} />
+          onClick={() => setRuta('/calendario')} />
         <Boton
           esBotonInicio={false}
           texto="ASISTENCIA"
           icon={IconCheck}
-          onClick={calendario} />
+          onClick={() => setRuta('/asistencia')} />
         <Boton
           esBotonInicio={false}
           texto="COMPROMISOS"
           icon={IconClipboard}
-          onClick={calendario} />
+          onClick={() => setRuta('/compromisos')} />
         <Boton
           esBotonInicio={false}
           texto="INFORMACIÓN"
           icon={IconInfo}
-          onClick={calendario} />
+          onClick={() => setRuta('/informacion')} />
       </div>
     </div>
   );
