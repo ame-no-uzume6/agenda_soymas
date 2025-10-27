@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/agenda_virtual/static/css/main.7063943d.css",
-    "main.js": "/agenda_virtual/static/js/main.4ec4e232.js",
+    "main.js": "/agenda_virtual/static/js/main.bc592937.js",
     "static/media/Adlery.ttf": "/agenda_virtual/static/media/Adlery.3794db69593a478d1ff1.ttf",
     "static/media/SeasonsLight.ttf": "/agenda_virtual/static/media/SeasonsLight.a7164dea6a70d4306f27.ttf",
     "static/media/inicio.png": "/agenda_virtual/static/media/inicio.f0115d07b11307e5a353.png",
@@ -11,10 +11,10 @@
     "static/media/datos.png": "/agenda_virtual/static/media/datos.a05d03ca4b6b6aea18c2.png",
     "index.html": "/agenda_virtual/index.html",
     "main.7063943d.css.map": "/agenda_virtual/static/css/main.7063943d.css.map",
-    "main.4ec4e232.js.map": "/agenda_virtual/static/js/main.4ec4e232.js.map"
+    "main.bc592937.js.map": "/agenda_virtual/static/js/main.bc592937.js.map"
   },
   "entrypoints": [
     "static/css/main.7063943d.css",
-    "static/js/main.4ec4e232.js"
+    "static/js/main.bc592937.js"
   ]
 }
