@@ -1,0 +1,46 @@
+@font-face {
+  font-family: 'Seasons';
+  src: url("../fuentes/SeasonsLight.ttf");
+}
+
+button{
+  min-width: 250px;
+  height: 70px;
+  padding: 10px 20px;
+  position: relative;
+  font-family: 'Seasons', serif;
+  font-weight: 400;
+  font-size: 1.8rem;
+  color: white;
+  border: 2px solid white;
+  border-radius: 15px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.boton-inicio{
+  background-color: #A52488;
+}
+
+.boton-perfil{
+  background-color: #ff8acf;
+  padding-left: 70px;
+}
+
+/* icon inside button */
+.boton-icon{
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0;
+}
+
+.boton-text{
+  vertical-align: middle;
+}
