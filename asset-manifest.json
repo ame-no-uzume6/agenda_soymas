@@ -1,20 +1,20 @@
 {
   "files": {
-    "main.css": "/agenda_virtual/static/css/main.7063943d.css",
-    "main.js": "/agenda_virtual/static/js/main.4ec4e232.js",
-    "static/media/Adlery.ttf": "/agenda_virtual/static/media/Adlery.3794db69593a478d1ff1.ttf",
-    "static/media/SeasonsLight.ttf": "/agenda_virtual/static/media/SeasonsLight.a7164dea6a70d4306f27.ttf",
-    "static/media/inicio.png": "/agenda_virtual/static/media/inicio.f0115d07b11307e5a353.png",
-    "static/media/logoSoymas.png": "/agenda_virtual/static/media/logoSoymas.6583fd17028cfc3a5089.png",
-    "static/media/perfil.png": "/agenda_virtual/static/media/perfil.2379a1466a7179a83ac0.png",
-    "static/media/login.png": "/agenda_virtual/static/media/login.d89398de5f6e44b83819.png",
-    "static/media/datos.png": "/agenda_virtual/static/media/datos.a05d03ca4b6b6aea18c2.png",
-    "index.html": "/agenda_virtual/index.html",
-    "main.7063943d.css.map": "/agenda_virtual/static/css/main.7063943d.css.map",
-    "main.4ec4e232.js.map": "/agenda_virtual/static/js/main.4ec4e232.js.map"
+    "main.css": "/agenda_soymas/static/css/main.418c0add.css",
+    "main.js": "/agenda_soymas/static/js/main.30308df7.js",
+    "static/media/Adlery.ttf": "/agenda_soymas/static/media/Adlery.3794db69593a478d1ff1.ttf",
+    "static/media/SeasonsLight.ttf": "/agenda_soymas/static/media/SeasonsLight.a7164dea6a70d4306f27.ttf",
+    "static/media/inicio.png": "/agenda_soymas/static/media/inicio.f0115d07b11307e5a353.png",
+    "static/media/logoSoymas.png": "/agenda_soymas/static/media/logoSoymas.6583fd17028cfc3a5089.png",
+    "static/media/perfil.png": "/agenda_soymas/static/media/perfil.2379a1466a7179a83ac0.png",
+    "static/media/login.png": "/agenda_soymas/static/media/login.d89398de5f6e44b83819.png",
+    "static/media/datos.png": "/agenda_soymas/static/media/datos.a05d03ca4b6b6aea18c2.png",
+    "index.html": "/agenda_soymas/index.html",
+    "main.418c0add.css.map": "/agenda_soymas/static/css/main.418c0add.css.map",
+    "main.30308df7.js.map": "/agenda_soymas/static/js/main.30308df7.js.map"
   },
   "entrypoints": [
-    "static/css/main.7063943d.css",
-    "static/js/main.4ec4e232.js"
+    "static/css/main.418c0add.css",
+    "static/js/main.30308df7.js"
   ]
 }
