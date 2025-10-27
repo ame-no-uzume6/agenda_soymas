@@ -8,12 +8,12 @@ import Calendario from './views/Calendario';
 import Asistencia from './views/Asistencia';
 
 const router = createBrowserRouter([
-  { path: '/', element: <Inicio /> },
-  { path: '/login', element: <Login /> },
-  { path: '/datos-personales', element: <DatosPersonales /> },
-  { path: '/compromisos', element: <Compromisos /> },
-  { path: '/calendario', element: <Calendario /> },
-  { path: '/asistencia', element: <Asistencia /> },
+  { path: 'agenda_soymas/', element: <Inicio /> },
+  { path: 'agenda_soymas/login', element: <Login /> },
+  { path: 'agenda_soymas/datos-personales', element: <DatosPersonales /> },
+  { path: 'agenda_soymas/compromisos', element: <Compromisos /> },
+  { path: 'agenda_soymas/calendario', element: <Calendario /> },
+  { path: 'agenda_soymas/asistencia', element: <Asistencia /> },
 ]);
 
 function App() {
