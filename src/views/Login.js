@@ -24,7 +24,7 @@ export default function Login() {
                   esBotonInicio={true}
                   texto="INGRESAR"
                   onClick={login} />
-        <a className='mensaje-contraseña'>¿Olvidaste tu contraseña?</a>
+        <a className='mensaje-contraseña' href='#'>¿Olvidaste tu contraseña?</a>
       </div>
     </div>
   );
