@@ -1,0 +1,20 @@
+{
+  "files": {
+    "main.css": "/static/css/main.40e87835.css",
+    "main.js": "/static/js/main.d4f2d1d3.js",
+    "static/media/Adlery.ttf": "/static/media/Adlery.3794db69593a478d1ff1.ttf",
+    "static/media/SeasonsLight.ttf": "/static/media/SeasonsLight.a7164dea6a70d4306f27.ttf",
+    "static/media/inicio.png": "/static/media/inicio.f0115d07b11307e5a353.png",
+    "static/media/logoSoymas.png": "/static/media/logoSoymas.6583fd17028cfc3a5089.png",
+    "static/media/perfil.png": "/static/media/perfil.2379a1466a7179a83ac0.png",
+    "static/media/login.png": "/static/media/login.d89398de5f6e44b83819.png",
+    "static/media/datos.png": "/static/media/datos.a05d03ca4b6b6aea18c2.png",
+    "index.html": "/index.html",
+    "main.40e87835.css.map": "/static/css/main.40e87835.css.map",
+    "main.d4f2d1d3.js.map": "/static/js/main.d4f2d1d3.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.40e87835.css",
+    "static/js/main.d4f2d1d3.js"
+  ]
+}
