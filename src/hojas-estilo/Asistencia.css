@@ -1,0 +1,129 @@
+.asistencia-contenedor{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    font-family: 'Seasons', serif;
+    font-weight: 700;
+    gap: 2vh;
+    padding: 2vh 0;
+}
+.contenedor{
+    width: 90%;
+    height: fit-content;
+    padding: 2vh 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.titulo-contenedor{
+    flex-grow: 0;
+}
+
+.semana-contenedor{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.numero-semana{
+    font-size: 4rem;
+}
+
+.registro-contenedor{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+    flex-grow: 1;
+}
+
+.registro-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.registro-dia {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.registro-check {
+    width: 40px;
+    height: 40px;
+    border: 2px dashed #A52488;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.registro-check:hover {
+    border-style: solid;
+}
+
+.registro-check.checked {
+    background-color: #7B1B65;
+    border-style: solid;
+    border-color: #7B1B65;
+}
+
+.resumen-contenedor {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    gap: 5px;
+    color: #A52488;
+    text-align: center;
+}
+.numero {
+    font-size: 3.5vh;
+}
+.billetera-virtual {
+    padding: 0 5px;
+    border-left: #A52488 2px solid;
+    border-right: #A52488 2px solid;
+}
+
+.grafico-contenedor {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2vh;
+    color: hsl(313, 64%, 39%);
+    flex: 1;
+    min-height: 30vh;
+}
+
+.chart-wrapper {
+    position: relative;
+    width: min(30vh, 180px);
+    height: min(30vh, 180px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.percentage-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+}
+
+.chart-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 1.2rem;
+}
