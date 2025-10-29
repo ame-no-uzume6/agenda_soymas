@@ -1,0 +1,91 @@
+.registro-compromisos{
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    font-family: 'Seasons', serif;
+    font-weight: 700;
+}
+
+.registro-compromiso-texto{
+    color: #fff;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    background-color: #a52488;
+    padding: 5px 12px;
+    border-radius: 15px;
+}
+.compromiso-icon{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:36px;
+    height:36px;
+    font-size:1.2rem;
+    color: #d581a1; /* icon color (purple) so it's visible on white circle) */
+    background: #ffffff; /* white circle behind icon */
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    flex: none;
+}
+.texto-wrap{
+    display:flex;
+    flex-direction:column;
+}
+.tipo-compromiso{
+    font-size: 1.1rem;
+}
+.descripcion-compromiso{
+    font-size: 0.8rem;
+}
+.registro-compromiso-check{
+    display: flex;
+    justify-content: space-around;
+    align-items:center;
+    gap: 7px;
+    color: #a52488;
+    padding: 0 5px;
+}
+
+/* Check box visuals */
+.check-item{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.check-dia{
+    font-size: 0.7rem;
+    color: #666;
+}
+.check-box{
+    width: 22px;
+    height: 22px;
+    background: #ffffff; /* white rounded square */
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.check-circle{
+    width: 16px;
+    height: 16px;
+    background: #d2cece; /* gray circle */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ticket-icon{
+    color: #ffffff;
+    font-size: 9px;
+    line-height: 1;
+}
+.check-circle.active{
+    background: #d581a1; /* active color */
+}
+
+/* small hit area on mobile so it's easier to tap */
+.check-box{padding:2px}

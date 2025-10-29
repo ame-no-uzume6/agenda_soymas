@@ -1,4 +1,4 @@
-export default function Compromisos() {
+export default function Informacion() {
   return (
     <div>Informacion</div>
   );

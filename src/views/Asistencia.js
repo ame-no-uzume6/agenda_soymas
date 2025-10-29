@@ -61,7 +61,7 @@ export default function Asistencia() {
   };
   return(
     <div className="asistencia-contenedor">
-      <div className="contenedor titulo-contenedor">
+      <div className="contenedor titulo-asistencia-contenedor">
         <h1 className="titulo-asistencia">{IconCalendar}ASISTENCIA</h1>
       </div>
       <div className="contenedor">

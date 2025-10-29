@@ -1,0 +1,91 @@
+.compromisos-contenedor{
+    width: 100vw;
+    height: 100vh;
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Seasons', serif;
+    font-weight: 700;
+    background-color: #a52488;
+    
+}
+.titulo-compromisos-contenedor{
+    text-align: center;
+    color: white;
+}
+.registro-compromisos-contenedor{
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 10px;
+    background-color: #ead5ea;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    height: 67vh; /* fixed visual area */
+    overflow-y: auto; /* internal scroll */
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+    box-sizing: border-box;
+}
+
+/* Optional: subtle scrollbar styling for modern browsers */
+.registro-compromisos-contenedor::-webkit-scrollbar{
+    width: 8px;
+}
+.registro-compromisos-contenedor::-webkit-scrollbar-track{
+    background: transparent;
+}
+.registro-compromisos-contenedor::-webkit-scrollbar-thumb{
+    background-color: rgba(165,36,136,0.3);
+    border-radius: 10px;
+}
+
+.resumen-compromisos-contenedor{
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 20px;
+    background-color: #ffffff;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.resumen-compromisos {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.resumen-compromisos-texto {
+    font-size: 1rem;
+    padding: 10px;
+    background-color: #a52488;
+    color: #ffffff;
+    text-align: center;
+    border-radius: 25px;
+}
+
+.resumen-compromisos-grafico {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin-left: -10px;
+    z-index: 1;
+}
+
+.porcentaje-texto {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    color: #A52488;
+}
+
+.resumen-compromisos-frase {
+    text-align: center;
+    color: #666;
+    font-size: 1rem;
+}
