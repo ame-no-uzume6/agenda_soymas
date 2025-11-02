@@ -1,0 +1,125 @@
+.calendario-contenedor{
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    font-family: 'Seasons';
+    font-weight: 700;
+    color: #A52488;
+
+}
+.calendario{
+    margin-top: 10px;
+}
+.calendario-mes{
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 12px;
+  width: 100%;
+}
+.calendario-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 800;
+  color: #A52488;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  padding: 0 10px;
+}
+
+.mes-titulo {
+  flex: 1;
+  text-align: center;
+}
+
+.mes-nav-btn {
+  background: transparent;
+  border: none;
+  color: #A52488;
+  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.mes-nav-btn:hover {
+  background-color: #f0e6ee;
+}
+
+.mes-nav-btn:active {
+  background-color: #e6cfe0;
+}
+.calendario-weekdays{
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  text-align: center;
+  color: #666;
+  font-weight: 700;
+}
+.weekday{padding:6px 0}
+.calendario-grid{
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  margin-top: 8px;
+}
+.cal-cell{min-height:48px; display:flex; align-items:flex-start; justify-content:center; position:relative}
+.cal-cell.empty{opacity:0}
+.day-circle{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:#e6cfe0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.day-circle:hover {
+  background: #e590d0;
+}
+
+.day-circle.today{
+  outline:2px solid #A52488
+}
+
+.day-circle.selected{
+  background: #A52488;
+}
+
+.day-number{
+  color:white;
+  font-weight:800
+}
+.tasks-indicator{position:absolute; right:6px; top:6px; width:8px;height:8px;border-radius:50%;background:#A52488}
+
+.calendario-mes input{width:100%; padding:6px;border-radius:6px;border:1px solid #ddd}
+.calendario-mes button{background:#A52488;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
+
+.tareas-contenedor{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+}
+.titulo-tareas{
+    font-size: 1.5rem;
+    align-self: flex-start;
+    color: #A52488;
+}
+.agrega-input{
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}

@@ -3,7 +3,7 @@
   src: url("../fuentes/SeasonsLight.ttf");
 }
 
-button{
+.boton-contenedor{
   min-width: 250px;
   height: 70px;
   padding: 10px 20px;
