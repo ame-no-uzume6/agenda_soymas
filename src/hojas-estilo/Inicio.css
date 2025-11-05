@@ -6,17 +6,18 @@
   font-family: 'Seasons';
   src: url("../fuentes/SeasonsLight.ttf");
 }
-body{
-    background-color: #c48ac4;
-    margin: 0;
-    min-height: 100vh;
-}
 
 .inicio-contenedor{
+    background-color: #ffffff;
+    background-image: url('../imagenes/fondoInicio.png');
+    background-repeat: no-repeat;
+    background-size:cover;
+    background-attachment: fixed;
+    background-position: center;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: start;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -35,39 +36,20 @@ body{
 
 
 .titulo{
-    position: relative;
-    bottom: 80px;
     font-family: 'Seasons', serif;
     font-size: 3rem;
     font-weight: 400;
     color: #ffffff;
     text-align: center;
 }
-.semi{
-    width: 100vw;
-    height: 45vh;
-    background: #ffffff;
-    border-top-left-radius: 100% 50%;
-    border-top-right-radius: 100% 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content:end;
-    box-shadow: 0 -6px 18px rgba(0,0,0,0.12);
-    padding: 2rem 0;
-}
 .imagen-inicio{
-    position: relative;
-    bottom:-50px;
-    height: 50vh;
+    height: 40vh;
     width: 100%;
     object-fit: cover;
-    padding-left: 20px;
 }
 
 .frase-contenedor{
     width: 100%;
-    min-height: 90px;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -1,0 +1,24 @@
+.back-circle{
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  z-index: 9999;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.back-circle:hover{
+  transform: translateY(-50%) scale(1.04);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+}
+
+.back-circle:active{
+  transform: translateY(-50%) scale(0.98);
+}
+
+/* If a page wants to control via CSS variable instead of prop, allow fallback */
+/* inline style (background/size) will typically be provided via the component props */

@@ -1,27 +1,164 @@
 import '../hojas-estilo/Compromisos.css';
+import BackCircle from '../componentes/BackCircle';
 import Compromiso from '../componentes/Compromiso';
+import CompromisosModal from '../componentes/CompromisosModal';
 import { faDumbbell, faBed, faAppleAlt, faBrain, faSpa, faUsers } from '@fortawesome/free-solid-svg-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, ArcElement } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement);
 
 export default function Compromisos() {
-  const [totalChecks, setTotalChecks] = useState(0);
+  // default definitions
+  const defaultItems = [
+    { tipo: 'DEPORTE', descripcion: 'Yoga 30 min', icon: faDumbbell },
+    { tipo: 'SUEÑO', descripcion: '8 horas', icon: faBed },
+    { tipo: 'NUTRICIÓN', descripcion: 'Comida equilibrada', icon: faAppleAlt },
+    { tipo: 'SALUD MENTAL', descripcion: 'Terapia breve', icon: faBrain },
+    { tipo: 'MINDFULNESS', descripcion: 'Meditación 10 min', icon: faSpa },
+    { tipo: 'RELACIONES', descripcion: 'Contactar a un amigo', icon: faUsers }
+  ];
+
+  const [showModal, setShowModal] = useState(false);
+  const [items, setItems] = useState([]); // will contain {tipo, descripcion, icon, target}
+  const [achieved, setAchieved] = useState([]); // array of achieved counts per item
+  const { updateCurrentUserData } = useAuth();
+  const [checksByTipo, setChecksByTipo] = useState({});
+
+  // compute monday key
+  const getMondayKey = (d = new Date()) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    // get difference to Monday (Monday=1). If Sunday (0), go back 6 days
+    const diff = (day === 0) ? -6 : (1 - day);
+    const monday = new Date(date.setDate(date.getDate() + diff));
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const dayd = String(monday.getDate()).padStart(2, '0');
+    return `compromisos-week-${y}-${m}-${dayd}`;
+  };
+
+  useEffect(()=>{
+    const key = getMondayKey();
+    const stored = localStorage.getItem(key);
+    if(stored){
+      try{
+        const cfg = JSON.parse(stored);
+        // merge with default items
+        const merged = defaultItems.map(di => {
+          const found = cfg.find(c=>c.tipo===di.tipo);
+          return { ...di, target: found ? found.target : 0 };
+        });
+        setItems(merged);
+        setAchieved(new Array(merged.length).fill(0));
+        setShowModal(false);
+        // load saved checks for this week if any
+        const keyChecks = key + '-checks';
+        const storedChecks = JSON.parse(localStorage.getItem(keyChecks) || '{}');
+        setChecksByTipo(storedChecks || {});
+      }catch(e){
+        console.error('failed parse compromisos config', e);
+        setShowModal(true);
+        // set defaults with zero targets
+        const merged = defaultItems.map(di => ({ ...di, target: 0 }));
+        setItems(merged);
+        setAchieved(new Array(merged.length).fill(0));
+      }
+    }else{
+      // open modal to define weekly targets
+      setShowModal(true);
+      const merged = defaultItems.map(di => ({ ...di, target: 0 }));
+      setItems(merged);
+      setAchieved(new Array(merged.length).fill(0));
+      setChecksByTipo({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveWeeklyConfig = (cfgItems) => {
+    // cfgItems is array {tipo, target}
+    const key = getMondayKey();
+    localStorage.setItem(key, JSON.stringify(cfgItems));
+    // persist to current user's profile
+    if (typeof updateCurrentUserData === 'function') {
+      updateCurrentUserData(prev => ({
+        ...prev,
+        compromisos: {
+          ...(prev && prev.compromisos ? prev.compromisos : {}),
+          [key]: cfgItems
+        }
+      }));
+    }
+    // update items state merging with descriptors
+    const merged = defaultItems.map(di => {
+      const found = cfgItems.find(c=>c.tipo===di.tipo);
+      return { ...di, target: found ? found.target : 0 };
+    });
+    setItems(merged);
+    setAchieved(new Array(merged.length).fill(0));
+    setShowModal(false);
+  };
+
+  const handleAchievedChange = (index, value) => {
+    setAchieved(prev => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const handleChecksChange = (tipo, checkedArray) => {
+    const keyChecks = getMondayKey() + '-checks';
+    try{
+      const existing = JSON.parse(localStorage.getItem(keyChecks) || '{}');
+      const next = { ...(existing || {}), [tipo]: checkedArray };
+      localStorage.setItem(keyChecks, JSON.stringify(next));
+      setChecksByTipo(next);
+      // also persist into user's profile under compromisosChecks
+      if (typeof updateCurrentUserData === 'function') {
+        updateCurrentUserData(prev => ({
+          ...prev,
+          compromisosChecks: {
+            ...(prev && prev.compromisosChecks ? prev.compromisosChecks : {}),
+            [keyChecks]: {
+              ...(prev && prev.compromisosChecks && prev.compromisosChecks[keyChecks] ? prev.compromisosChecks[keyChecks] : {}),
+              [tipo]: checkedArray
+            }
+          }
+        }));
+      }
+    }catch(e){
+      console.error('save compromisos checks failed', e);
+    }
+  };
+
+  // compute totals with per-commitment capping: each commitment cannot contribute
+  // more than its weekly target when calculating progress
+  const totalTarget = items.reduce((s, it) => s + (it.target || 0), 0);
+  const cappedAchieved = achieved.map((v, i) => {
+    const val = v || 0;
+    const target = (items[i] && items[i].target) ? items[i].target : 0;
+    return Math.min(val, target);
+  });
+  const totalAchieved = cappedAchieved.reduce((s, v) => s + v, 0);
+
+  // percent guard (clamp to 100)
+  const percent = totalTarget > 0 ? Math.min(100, Math.round((totalAchieved / totalTarget) * 100)) : 0;
+
   return (
     <div className="compromisos-contenedor">
-      <div className="titulo-compromisos-contenedor">
+      <CompromisosModal visible={showModal} onClose={() => setShowModal(false)} onSubmit={saveWeeklyConfig} defaultConfig={items.map(i=>({ tipo:i.tipo, target:i.target }))} />
+      <div className="nav-contenedor">
+        <BackCircle bcolor = '#fff' color='#a52488'/>
         <h1 className="titulo-compromisos">MI COMPROMISO SEMANAL</h1>
       </div>
 
       <div className="registro-compromisos-contenedor">
-        <Compromiso tipo="DEPORTE" descripcion="Yoga 30 min" icon={faDumbbell} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
-        <Compromiso tipo="SUEÑO" descripcion="8 horas" icon={faBed} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
-        <Compromiso tipo="NUTRICIÓN" descripcion="Comida equilibrada" icon={faAppleAlt} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
-        <Compromiso tipo="SALUD MENTAL" descripcion="Terapia breve" icon={faBrain} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
-        <Compromiso tipo="MINDFULNESS" descripcion="Meditación 10 min" icon={faSpa} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
-        <Compromiso tipo="RELACIONES" descripcion="Contactar a un amigo" icon={faUsers} onChecksChange={(count) => setTotalChecks(prev => prev + count)} />
+        {items.map((it, idx) => (
+          <Compromiso key={it.tipo} tipo={it.tipo} descripcion={it.descripcion} icon={it.icon} initialChecks={checksByTipo[it.tipo] || null} target={it.target} onAchievedChange={(count) => handleAchievedChange(idx, count)} onChecksChange={(arr) => handleChecksChange(it.tipo, arr)} />
+        ))}
       </div>
 
       <div className='resumen-compromisos-contenedor'>
@@ -33,7 +170,7 @@ export default function Compromisos() {
             <Doughnut 
               data={{
                 datasets: [{
-                  data: [totalChecks, 42 - totalChecks],
+                  data: [totalAchieved, Math.max(0, totalTarget - totalAchieved)],
                   backgroundColor: ['#d581a1', '#EAD5EA'],
                   borderWidth: 0,
                   cutout: '60%'
@@ -48,7 +185,7 @@ export default function Compromisos() {
               }}
             />
             <div className="porcentaje-texto">
-              {Math.round((totalChecks / 42) * 100)}%
+              {percent}%
             </div>
           </div>
         </div>

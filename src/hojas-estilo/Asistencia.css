@@ -7,12 +7,25 @@
     font-family: 'Seasons', serif;
     font-weight: 700;
     gap: 2vh;
-    padding: 2vh 0;
+    padding: 10px;
+    padding-bottom: 7vh;
+    background-image: url('../imagenes/fondoAsistencia.png');
+    background-repeat: no-repeat;
+    background-size:cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+.nav-contenedor{
+    align-self: flex-start;
+}
+.titulo-asistencia{
+    font-size: 1.7rem;
+    color: white;
 }
 .contenedor{
     width: 90%;
     height: fit-content;
-    padding: 2vh 20px;
+    padding:20px;
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -21,9 +34,6 @@
     flex-direction: column;
 }
 
-.titulo-asistencia-contenedor{
-    flex-grow: 0;
-}
 
 .semana-contenedor{
     display: flex;

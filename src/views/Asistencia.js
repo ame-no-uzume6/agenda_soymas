@@ -1,13 +1,15 @@
 import '../hojas-estilo/Asistencia.css';
+import BackCircle from '../componentes/BackCircle';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarDays, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip);
 
-const IconCalendar = <FontAwesomeIcon icon={faCalendarDays} style={{ color: '#A52488' }} />;
+
 const IconCheck = <FontAwesomeIcon icon={faCheck} style={{ color: '#ffffff' }} />;
 
 export default function Asistencia() {
@@ -16,6 +18,18 @@ export default function Asistencia() {
   const [daysAttended, setDaysAttended] = useState(0);
   const [daysAbsent, setDaysAbsent] = useState(0);
   const [walletAmount, setWalletAmount] = useState(0);
+  const { updateCurrentUserData, currentUser } = useAuth();
+
+  const getMondayKey = (d = new Date()) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = (day === 0) ? -6 : (1 - day);
+    const monday = new Date(date.setDate(date.getDate() + diff));
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const dayd = String(monday.getDate()).padStart(2, '0');
+    return `asistencia-week-${y}-${m}-${dayd}`;
+  };
 
   const handleCheck = (index) => {
     const newCheckedDays = [...checkedDays];
@@ -40,6 +54,21 @@ export default function Asistencia() {
     
     // Calculate wallet amount based only on number of days attended
     setWalletAmount(calculateWalletAmount(attended));
+    // persist attendance for the current user for this week
+    try{
+      const key = getMondayKey();
+      if(typeof updateCurrentUserData === 'function'){
+        updateCurrentUserData(prev => ({
+          ...prev,
+          asistencia: {
+            ...(prev && prev.asistencia ? prev.asistencia : {}),
+            [key]: checkedDays
+          }
+        }));
+      }
+    }catch(e){
+      console.error('persist asistencia failed', e);
+    }
   }, [checkedDays]);
 
   const chartData = {
@@ -61,8 +90,9 @@ export default function Asistencia() {
   };
   return(
     <div className="asistencia-contenedor">
-      <div className="contenedor titulo-asistencia-contenedor">
-        <h1 className="titulo-asistencia">{IconCalendar}ASISTENCIA</h1>
+      <div className="nav-contenedor">
+        <BackCircle/>
+        <h1 className="titulo-asistencia">ASISTENCIA</h1>
       </div>
       <div className="contenedor">
         <div className="semana-contenedor">

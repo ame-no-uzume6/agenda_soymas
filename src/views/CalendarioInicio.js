@@ -1,18 +1,25 @@
 import Tarea from "../componentes/Tarea";
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faRightFromBracket, faHandFist, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck } from '@fortawesome/free-regular-svg-icons';
 import CalendarioMes from '../componentes/CalendarioMes';
-import BackCircle from '../componentes/BackCircle';
 import AddTaskModal from '../componentes/AddTaskModal';
+import { useNavigate } from 'react-router-dom';
+import '../hojas-estilo/CalendarioInicio.css';
+import { useAuth } from '../context/AuthContext';
 
 export default function Calendario() {
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
+  // load user display values from auth (fallbacks kept for guests)
+  const userName = currentUser && currentUser.name ? currentUser.name : 'Invitada';
+  const userEmail = currentUser && currentUser.email ? currentUser.email : '';
+
   const [adding, setAdding] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null); // {y,m,d}
   const [editingTask, setEditingTask] = useState(null);
-  const { updateCurrentUserData, currentUser, switchUser } = useAuth();
 
   const keyForDate = (date) => {
     if(!date) return null;
@@ -60,16 +67,6 @@ export default function Calendario() {
         const oldList = JSON.parse(localStorage.getItem(oldK) || '[]');
         const filteredOld = oldList.filter(it => !(it && it.id && editingTask.id && it.id === editingTask.id));
         localStorage.setItem(oldK, JSON.stringify(filteredOld));
-        // persist removal to user's tareas map
-        if (typeof updateCurrentUserData === 'function') {
-          updateCurrentUserData(prev => ({
-            ...prev,
-            tareas: {
-              ...(prev && prev.tareas ? prev.tareas : {}),
-              [oldK]: filteredOld
-            }
-          }));
-        }
       }
 
       // add to new date key
@@ -79,16 +76,6 @@ export default function Calendario() {
       const updatedNew = [updatedTask, ...existingNew];
         const sortedUpdated = sortTasks(updatedNew);
         localStorage.setItem(newK, JSON.stringify(sortedUpdated));
-      // persist into current user's tareas
-      if (typeof updateCurrentUserData === 'function') {
-        updateCurrentUserData(prev => ({
-          ...prev,
-          tareas: {
-            ...(prev && prev.tareas ? prev.tareas : {}),
-            [newK]: sortedUpdated
-          }
-        }));
-      }
 
       // if new date equals selectedDate, refresh visible list
       if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
@@ -112,17 +99,6 @@ export default function Calendario() {
     const updated = [newTask, ...existing];
       const sorted = sortTasks(updated);
       localStorage.setItem(k, JSON.stringify(sorted));
-
-    // persist into current user's tareas
-    if (typeof updateCurrentUserData === 'function') {
-      updateCurrentUserData(prev => ({
-        ...prev,
-        tareas: {
-          ...(prev && prev.tareas ? prev.tareas : {}),
-          [k]: sorted
-        }
-      }));
-    }
 
     // If the modal date matches currently selectedDate, refresh the tasks list shown
     if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
@@ -154,16 +130,6 @@ export default function Calendario() {
     const sorted = sortTasks(updated);
     localStorage.setItem(k, JSON.stringify(sorted));
     setTasks(sorted);
-    // persist to current user's tareas
-    if (typeof updateCurrentUserData === 'function') {
-      updateCurrentUserData(prev => ({
-        ...prev,
-        tareas: {
-          ...(prev && prev.tareas ? prev.tareas : {}),
-          [k]: sorted
-        }
-      }));
-    }
   };
 
   const onDateSelect = (date) => {
@@ -176,51 +142,60 @@ export default function Calendario() {
 
   return (
     <div className="calendario-contenedor">
-      <div className="nav-contenedor">
-        <BackCircle/>
-        <h1 className="titulo-calendario">CALENDARIO</h1>
+      <div className='logo-inicio-contenedor'>
+        <img className='logo' src={require('../imagenes/logoSoymas.png')} alt="Logo" />
       </div>
-      {/* current user display + simple switch control */}
-      <div style={{position:'absolute', right:16, top:12, color:'#fff', display:'flex', gap:8, alignItems:'center'}}>
-        {currentUser ? (
-          <>
-            <div style={{fontSize:12, textAlign:'right'}}>
-              <div style={{fontWeight:700}}>{currentUser.name}</div>
-              <div style={{fontSize:11, opacity:0.9}}>{currentUser.oficio}</div>
-            </div>
-            <button style={{background:'#fff', color:'#a52488', borderRadius:8, padding:'6px 8px', border:'none', cursor:'pointer'}} onClick={() => {
-              // cycle to next user for demo purposes
-              const users = JSON.parse(localStorage.getItem('app_users_v1') || '[]');
-              if(!users || users.length === 0) return;
-              const idx = users.findIndex(u => u.email === (currentUser && currentUser.email));
-              const next = users[(idx + 1) % users.length];
-              if(next){ switchUser(next.email); }
-            }}>Cambiar</button>
-          </>
-        ) : (
-          <div style={{fontSize:12}}>Invitado</div>
-        )}
+      <div className="datos-inicio-contenedor">
+        <div className="foto-datos">
+          {/* Circle with initial */}
+          <div className="foto-inicial">{userName && userName.charAt(0).toUpperCase()}</div>
+        </div>
+        <div className="texto-datos">
+          <div className="saludo">¡Hola {userName}!</div>
+          <div className="email">{userEmail}</div>
+        </div>
+        <div className="exit-datos">
+          <button className="exit-button" onClick={() => { logout && logout(); navigate('/login'); }} aria-label="Cerrar sesión">
+            <FontAwesomeIcon icon={faRightFromBracket} />
+          </button>
+        </div>
       </div>
-      <div className="calendario">
+      <div className="calendario calendario-inicio">
           <CalendarioMes onDateSelect={onDateSelect} selectedDate={selectedDate} />
       </div>
       
+      <div className="tareas-contenedor-contenedor">
         <div className="titulo-tareas">TAREAS</div>
-      <div className="tareas-contenedor">
-        {selectedDate ? (
-          tasks.map((t, i) => {
-            const desc = typeof t === 'string' ? t : `${t.name}${t.time ? ' — ' + t.time : ''}`;
-            return <Tarea key={t && t.id ? t.id : i} Descripción={desc} onDelete={() => removeTask(t)} onEdit={() => { setEditingTask(t); setAdding(true); }} />
-          })
-        ) : (
-          <div className="no-selected">Selecciona un día para ver tus tareas</div>
-        )}
+        <div className="tareas-contenedor">
+          {selectedDate ? (
+            tasks.map((t, i) => {
+              const desc = typeof t === 'string' ? t : `${t.name}${t.time ? ' — ' + t.time : ''}`;
+              return <Tarea key={t && t.id ? t.id : i} Descripción={desc} onDelete={() => removeTask(t)} onEdit={() => { setEditingTask(t); setAdding(true); }} />
+            })
+          ) : (
+            <div className="no-selected">Selecciona un día para ver tus tareas</div>
+          )}
+        </div>
+        <div className="tareas-agrega">
+          <button className="agrega-button" onClick={() => { setEditingTask(null); setAdding(true); }}>
+            <FontAwesomeIcon icon={faPlus} />
+          </button>
+          <AddTaskModal visible={adding} onClose={() => { setAdding(false); setEditingTask(null); }} onSubmit={handleModalSubmit} defaultDate={selectedDate} initialTask={editingTask} />
+        </div>
       </div>
-      <div className="tareas-agrega">
-        <button className="agrega-button" onClick={() => { setEditingTask(null); setAdding(true); }}>
-          <FontAwesomeIcon icon={faPlus} />
+      <div className="navegacion-contenedor">
+        <button className="nav-card" onClick={() => navigate('/asistencia')} aria-label="Asistencia">
+          <FontAwesomeIcon icon={faHandFist} />
+          <span className="texto-nav-card">Asistencia</span>
         </button>
-        <AddTaskModal visible={adding} onClose={() => { setAdding(false); setEditingTask(null); }} onSubmit={handleModalSubmit} defaultDate={selectedDate} initialTask={editingTask} />
+        <button className="nav-card" onClick={() => navigate('/compromisos')} aria-label="Compromisos">
+          <FontAwesomeIcon icon={faCircleCheck} />
+          <span className="texto-nav-card">Compromisos</span>
+        </button>
+        <button className="nav-card" onClick={() => navigate('/informacion')} aria-label="Información">
+          <FontAwesomeIcon icon={faCircleInfo} />
+          <span className="texto-nav-card">Informacion</span>
+        </button>
       </div>
     </div>
   );

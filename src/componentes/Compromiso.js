@@ -1,24 +1,53 @@
 import '../hojas-estilo/Compromiso.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
 
-function Compromiso ({ tipo = 'DEPORTE', descripcion = 'Yoga 30 min', icon = null, onChecksChange }){
+function Compromiso ({ tipo = 'DEPORTE', descripcion = 'Yoga 30 min', icon = null, initialChecks = null, onChecksChange, target = 0, onAchievedChange }){
   // track checkbox state for 7 days
   const [checked, setChecked] = useState([false,false,false,false,false,false,false]);
   const days = ['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
 
   const toggle = (i) => {
     const copy = [...checked];
-    const oldValue = copy[i];
     copy[i] = !copy[i];
     setChecked(copy);
     
-    // Report check change to parent (+1 for check, -1 for uncheck)
+    // Report achieved count to parent
+    if (onAchievedChange) {
+      const achieved = copy.filter(Boolean).length;
+      onAchievedChange(achieved);
+    }
+    // also provide full checked array to parent for persistence
     if (onChecksChange) {
-      onChecksChange(copy[i] ? 1 : -1);
+      onChecksChange(copy);
     }
   };
+
+  // report initial achieved count (in case parent needs it)
+  useEffect(()=>{
+    // If parent provided an initial checked array, apply it first
+    if(Array.isArray(initialChecks) && initialChecks.length === checked.length){
+      setChecked(initialChecks);
+      if(onAchievedChange){
+        onAchievedChange(initialChecks.filter(Boolean).length);
+      }
+      if(onChecksChange){
+        onChecksChange(initialChecks);
+      }
+    } else {
+      if(onAchievedChange){
+        const achieved = checked.filter(Boolean).length;
+        onAchievedChange(achieved);
+      }
+      if(onChecksChange){
+        onChecksChange(checked);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const achievedCount = checked.filter(Boolean).length;
 
   return(
     <div className="registro-compromisos">
@@ -32,6 +61,7 @@ function Compromiso ({ tipo = 'DEPORTE', descripcion = 'Yoga 30 min', icon = nul
           <div className="tipo-compromiso">{tipo}</div>
           <div className="descripcion-compromiso">{descripcion}</div>
         </div>
+        <div className="meta-compromiso">{achievedCount} / {target || 0} días</div>
       </div>
       <div className="registro-compromiso-check">
         {days.map((d, idx) => (

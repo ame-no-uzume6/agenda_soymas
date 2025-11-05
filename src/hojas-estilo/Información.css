@@ -1,0 +1,11 @@
+.informacion-contenedor{
+    width: 100vw;
+    padding: 10px;
+    font-family: 'Seasons';
+}
+.titulo-informacion{
+    font-size: 1.7rem;
+}
+.imagen-informacion{
+    width: 100%;
+}

@@ -2,34 +2,32 @@
   font-family: 'Adlery';
   src: url("../fuentes/Adlery.ttf");
 }
-
 .login-contenedor{
+  background-color: #ffffff;
+  background-image: url('../imagenes/fondoLogin.jpeg');
+  background-repeat: no-repeat;
+  background-size:cover;
+  background-attachment: fixed;
+  background-position: center;
+  margin: 0;
+  height: 100vh;
   max-width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: end;
 }
 
-.imagen-contendor{
-  width: 100%;
-  height: 50vh;
-  overflow: hidden;
-  object-fit: cover;
-}
-.imagen-login{
-  width: 100vw;
-  height: 100%;
-}
 
 .formulario-contenedor{
-  position: absolute;
-  bottom: 0;
   width: 100vw;
   height: 55vh;
-  background: #eca8d8;
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content:space-evenly;
+  background-color: #eed0ed;
   box-shadow: 0 -6px 18px rgba(0,0,0,0.12);
   padding-bottom: 6rem;
 }

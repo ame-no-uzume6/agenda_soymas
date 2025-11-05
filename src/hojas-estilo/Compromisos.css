@@ -1,7 +1,7 @@
 .compromisos-contenedor{
     width: 100vw;
     height: 100vh;
-    padding: 10px 0;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -10,8 +10,14 @@
     background-color: #a52488;
     
 }
-.titulo-compromisos-contenedor{
-    text-align: center;
+.nav-contenedor{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.titulo-compromisos{
+    font-size: 1.7rem;
     color: white;
 }
 .registro-compromisos-contenedor{

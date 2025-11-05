@@ -1,0 +1,134 @@
+.logo-inicio-contenedor{
+    width: 100vw;
+}
+.calendario-contenedor{
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  font-family: 'Seasons';
+  font-weight: 700;
+  color: #A52488;
+  background-color: #fff;
+}
+.datos-inicio-contenedor{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #fff;
+    box-shadow: 0 6px 14px rgba(165,36,136,0.18);
+}
+
+.calendario-contenedor .foto-datos{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.foto-inicial{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background: #A52488;
+  color: white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:1.5rem;
+  box-shadow: 0 6px 14px rgba(165,36,136,0.18);
+}
+
+.calendario-contenedor .texto-datos{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.texto-datos .saludo{
+  font-weight:800;
+  color: #A52488;
+  font-size: 1.25rem;
+}
+
+.texto-datos .email{
+  font-size: 0.95rem;
+  color: #666;
+  margin-top:4px;
+}
+
+.exit-datos{
+  margin-left: auto;
+}
+
+.exit-button{
+  background: transparent;
+  border: none;
+  color: #A52488;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.exit-button:hover{
+  background: rgba(165,36,136,0.08);
+  transform: translateY(-2px);
+}
+
+.navegacion-contenedor{
+  width: 95%;
+  margin: 18px auto;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.nav-card{
+  width: 33%;
+  padding: 10px;
+  background: #fde8f6; /* pale pink */
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #A52488;
+  font-family: 'Seasons';
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+}
+.texto-nav-card{
+    font-size: 1rem;
+}
+
+.nav-card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+}
+
+.calendario-inicio{
+    box-shadow: 0 6px 14px rgba(165,36,136,0.18);
+    border-radius: 10px;
+}
+.tareas-contenedor-contenedor{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    padding: 10px;
+    box-shadow: 0 6px 14px rgba(165,36,136,0.18);
+    border-radius: 10px;
+}

@@ -1,28 +1,36 @@
 .calendario-contenedor{
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    font-family: 'Seasons';
-    font-weight: 700;
-    color: #A52488;
-
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  font-family: 'Seasons';
+  font-weight: 700;
+  color: #A52488;
+  background-color: #edd0ed;
+}
+.titulo-calendario{
+  font-size: 1.7rem;
 }
 .calendario{
-    margin-top: 10px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 .calendario-mes{
   background: #ffffff;
   padding: 12px;
+  padding-bottom: 0;
   border-radius: 12px;
-  width: 100%;
+  width: 80%;
 }
 .calendario-header{
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   font-weight: 800;
   color: #A52488;
   font-size: 1.1rem;
@@ -68,9 +76,8 @@
 .calendario-grid{
   display: grid;
   grid-template-columns: repeat(7,1fr);
-  margin-top: 8px;
 }
-.cal-cell{min-height:48px; display:flex; align-items:flex-start; justify-content:center; position:relative}
+.cal-cell{min-height:44px; display:flex; align-items:flex-start; justify-content:center; position:relative}
 .cal-cell.empty{opacity:0}
 .day-circle{
   width:30px;
@@ -117,6 +124,9 @@
     font-size: 1.5rem;
     align-self: flex-start;
     color: #A52488;
+}
+.tareas-agrega{
+  width: 100%;
 }
 .agrega-input{
     width: 100%;

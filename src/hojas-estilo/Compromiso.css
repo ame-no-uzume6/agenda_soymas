@@ -11,7 +11,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background-color: #a52488;
     padding: 5px 12px;
     border-radius: 15px;
@@ -38,6 +38,12 @@
 }
 .descripcion-compromiso{
     font-size: 0.8rem;
+}
+.meta-compromiso{
+    font-size: 0.75rem;
+    color: #f3d9e9;
+    align-self: flex-end;
+    margin-left: auto;
 }
 .registro-compromiso-check{
     display: flex;

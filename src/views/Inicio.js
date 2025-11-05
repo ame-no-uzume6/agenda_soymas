@@ -17,8 +17,7 @@ export default function Inicio() {
       </div>
 
       <h1 className='titulo'>TU AGENDA VIRTUAL</h1>
-      
-      <div className="semi">
+
         <div className="imagen-contenedor">
           <img className='imagen-inicio' src={imagenInicio} alt="Imagen de inicio" />
         </div>
@@ -29,7 +28,6 @@ export default function Inicio() {
           esBotonInicio={true}
           texto="INICIAR SESIÓN"
           onClick={rutaIniciarSesion} />
-      </div>
     </div>
   );
 }
