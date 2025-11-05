@@ -147,7 +147,6 @@ export default function Calendario() {
       </div>
       <div className="datos-inicio-contenedor">
         <div className="foto-datos">
-          {/* Circle with initial */}
           <div className="foto-inicial">{userName && userName.charAt(0).toUpperCase()}</div>
         </div>
         <div className="texto-datos">

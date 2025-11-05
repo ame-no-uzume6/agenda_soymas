@@ -18,7 +18,7 @@ export default function BackCircle({ bcolor = '#A52488',color = '#fff', size = 4
       className="back-circle"
       style={style}
       aria-label="Volver a datos personales"
-      onClick={() => navigate('/datos-personales')}
+      onClick={() => navigate('/calendario-inicio')}
     >
       <FontAwesomeIcon icon={faChevronLeft} />
     </button>
