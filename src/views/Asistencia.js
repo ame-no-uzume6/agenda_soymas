@@ -18,7 +18,38 @@ export default function Asistencia() {
   const [daysAttended, setDaysAttended] = useState(0);
   const [daysAbsent, setDaysAbsent] = useState(0);
   const [walletAmount, setWalletAmount] = useState(0);
-  const { updateCurrentUserData, currentUser } = useAuth();
+  const { updateCurrentUserData } = useAuth();
+
+  // Get semester week number (counting from July 7th)
+  const getWeekNumber = (d = new Date()) => {
+    // semester started July 7th 2025
+    const semesterStart = new Date(2025, 6, 7); // months are 0-based
+    const current = new Date(d);
+    // get days since semester start (86400000 ms per day)
+    const daysSinceSemesterStart = Math.floor((current - semesterStart) / 86400000);
+    // add 1 because we want weeks to start at 1, not 0
+    return Math.max(1, Math.ceil(daysSinceSemesterStart / 7));
+  };
+
+  // Get week's date range string
+  const getWeekRange = (d = new Date()) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = (day === 0) ? -6 : (1 - day); // Adjust to get to Monday
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diff);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    
+    // If Monday and Friday are in the same month
+    if (monday.getMonth() === friday.getMonth()) {
+      return `${monday.getDate()}-${friday.getDate()} ${months[monday.getMonth()]} ${monday.getFullYear()}`;
+    }
+    // If they span different months
+    return `${monday.getDate()} ${months[monday.getMonth()]}-${friday.getDate()} ${months[friday.getMonth()]} ${monday.getFullYear()}`;
+  };
 
   const getMondayKey = (d = new Date()) => {
     const date = new Date(d);
@@ -69,7 +100,7 @@ export default function Asistencia() {
     }catch(e){
       console.error('persist asistencia failed', e);
     }
-  }, [checkedDays]);
+  }, [checkedDays, updateCurrentUserData]);
 
   const chartData = {
     datasets: [{
@@ -96,10 +127,10 @@ export default function Asistencia() {
       </div>
       <div className="contenedor">
         <div className="semana-contenedor">
-          <div className="numero-semana">14</div>
+          <div className="numero-semana">{getWeekNumber()}</div>
           <div>
             <div className="texto-semana">Semana</div>
-            <div className="detalle-semana">27-30 Noviembre 2025</div>
+            <div className="detalle-semana">{getWeekRange()}</div>
           </div>
         </div>
 

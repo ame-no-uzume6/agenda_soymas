@@ -14,7 +14,7 @@ export default function Login() {
   const doLogin = async () => {
     const res = login(email.trim(), password);
     if(res.ok){
-      navigate('/datos-personales');
+      navigate('/calendario-inicio');
     }else{
       setError(res.message || 'Error al iniciar sesión');
     }
