@@ -1,119 +1,73 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-// LocalStorage key where users are stored
-const USERS_KEY = 'app_users_v1';
-const CURRENT_USER_KEY = 'app_current_user_email';
-
 const AuthContext = createContext(null);
-
-function seedDefaultUsers() {
-  const existing = localStorage.getItem(USERS_KEY);
-  if (existing) return;
-
-  const userA = {
-    email: 'ana@example.com',
-    password: 'pass123',
-    name: 'Ana López',
-    oficio: 'programacion',
-    asistencia: {}, // map date->boolean
-    compromisos: {}, // map weekKey -> array of {tipo, descripcion, target}
-    tareas: {} // map dateKey -> array of tasks
-  };
-
-  const userB = {
-    email: 'maria@example.com',
-    password: 'maria123',
-    name: 'María Pérez',
-    oficio: 'gastronomia',
-    asistencia: {},
-    compromisos: {},
-    tareas: {}
-  };
-
-  localStorage.setItem(USERS_KEY, JSON.stringify([userA, userB]));
-}
 
 export function AuthProvider({ children }){
   const [currentUser, setCurrentUser] = useState(null);
 
+  // on mount, do nothing (we removed localStorage). App requires explicit login.
   useEffect(()=>{
-    seedDefaultUsers();
-    // restore current user email if any
-    const email = localStorage.getItem(CURRENT_USER_KEY);
-    if(email){
-      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-      const found = users.find(u => u.email === email);
-      if(found){
-        setCurrentUser(found);
-        // load user data into app-local keys (compat)
-        restoreUserDataToApp(found);
-      }
-    }
+    // noop
   }, []);
 
-  const restoreUserDataToApp = (user) =>{
-    // write user's compromisos and tareas and asistencia to the app's expected localStorage keys
-    try{
-      // compromisos is a map of weekKey->array, copy each into localStorage
-      if(user.compromisos){
-        Object.keys(user.compromisos).forEach(k => {
-          localStorage.setItem(k, JSON.stringify(user.compromisos[k]));
-        });
-      }
-      if(user.tareas){
-        Object.keys(user.tareas).forEach(k=>{
-          localStorage.setItem(k, JSON.stringify(user.tareas[k]));
-        });
-      }
-      if(user.asistencia){
-        // store as 'asistencia-YYYY-MM-DD' entries or a single key
-        localStorage.setItem('user-asistencia-' + user.email, JSON.stringify(user.asistencia));
-      }
-    }catch(e){
-      console.error('restore user data failed', e);
-    }
-  };
+  const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
-  const login = (email, password) =>{
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const found = users.find(u => u.email === email && u.password === password);
-    if(found){
-      setCurrentUser(found);
-      localStorage.setItem(CURRENT_USER_KEY, email);
-      restoreUserDataToApp(found);
+  const login = async (email, password) =>{
+    try{
+      const res = await fetch(`${serverUrl}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if(!data.ok) return { ok: false, message: data.message || 'Login failed' };
+      // fetch user details
+      const userRes = await fetch(`${serverUrl}/api/user?email=${encodeURIComponent(email)}`);
+      const userData = await userRes.json();
+      if(!userData.ok) return { ok: false, message: 'Failed to load user' };
+      setCurrentUser(userData.user);
       return { ok: true };
+    }catch(e){
+      console.error('login error', e);
+      return { ok: false, message: 'Network error' };
     }
-    return { ok: false, message: 'Credenciales inválidas' };
   };
 
   const logout = () =>{
     setCurrentUser(null);
-    localStorage.removeItem(CURRENT_USER_KEY);
   };
 
-  const updateCurrentUserData = (updater) =>{
-    // updater receives the current user object and should return a new user object
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+  const updateCurrentUserData = async (updater) =>{
+    // updater receives currentUser and must return new user object (client-only changes)
     if(!currentUser) return;
     const newUser = updater(currentUser);
-    // replace in array
-    const next = users.map(u => u.email === newUser.email ? newUser : u);
-    localStorage.setItem(USERS_KEY, JSON.stringify(next));
     setCurrentUser(newUser);
-    // persist user-specific parts to app keys
-    restoreUserDataToApp(newUser);
+    // If asistencia present, try to sync to server
+    try{
+      if(newUser && newUser.asistencia){
+        await fetch(`${serverUrl}/api/syncAsistencia`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: newUser.email, asistencia: newUser.asistencia })
+        });
+      }
+    }catch(e){
+      console.warn('sync to server failed', e);
+    }
   };
 
-  const switchUser = (email) => {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const found = users.find(u => u.email === email);
-    if(found){
-      setCurrentUser(found);
-      localStorage.setItem(CURRENT_USER_KEY, email);
-      restoreUserDataToApp(found);
+  const switchUser = async (email) => {
+    // load user from server
+    try{
+      const userRes = await fetch(`${serverUrl}/api/user?email=${encodeURIComponent(email)}`);
+      const userData = await userRes.json();
+      if(!userData.ok) return { ok:false, message: 'Usuario no encontrado' };
+      setCurrentUser(userData.user);
       return { ok: true };
+    }catch(e){
+      console.error('switchUser error', e);
+      return { ok:false, message: 'Network error' };
     }
-    return { ok:false, message: 'Usuario no encontrado' };
   };
 
   return (

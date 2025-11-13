@@ -24,7 +24,7 @@ export default function Compromisos() {
   const [showModal, setShowModal] = useState(false);
   const [items, setItems] = useState([]); // will contain {tipo, descripcion, icon, target}
   const [achieved, setAchieved] = useState([]); // array of achieved counts per item
-  const { updateCurrentUserData } = useAuth();
+  const { updateCurrentUserData, currentUser } = useAuth();
   const [checksByTipo, setChecksByTipo] = useState({});
 
   // compute monday key
@@ -42,46 +42,98 @@ export default function Compromisos() {
 
   useEffect(()=>{
     const key = getMondayKey();
-    const stored = localStorage.getItem(key);
-    if(stored){
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const weekStart = key.split('-').slice(-3).join('-'); // last 3 parts are y,m,d
+    const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
+    // try to load weekly config from server first, fallback to localStorage
+    (async ()=>{
       try{
-        const cfg = JSON.parse(stored);
-        // merge with default items
-        const merged = defaultItems.map(di => {
-          const found = cfg.find(c=>c.tipo===di.tipo);
-          return { ...di, target: found ? found.target : 0 };
-        });
-        setItems(merged);
-        setAchieved(new Array(merged.length).fill(0));
-        setShowModal(false);
-        // load saved checks for this week if any
-        const keyChecks = key + '-checks';
-        const storedChecks = JSON.parse(localStorage.getItem(keyChecks) || '{}');
-        setChecksByTipo(storedChecks || {});
+        if (email) {
+          const res = await fetch(`${serverUrl}/api/compromisos?email=${encodeURIComponent(email)}&weekStart=${weekStart}`);
+          const json = await res.json();
+          if (json.ok && Array.isArray(json.rows) && json.rows.length > 0) {
+            // map rows to config items: Factor=tipo, Descripcion=descripcion, DiasCantidad=target
+            const cfg = json.rows.map(r => ({ tipo: r.Factor, descripcion: r.Descripcion, target: r.DiasCantidad }));
+            const merged = defaultItems.map(di => {
+              const found = cfg.find(c=>c.tipo===di.tipo);
+              return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 0 };
+            });
+            setItems(merged);
+            setAchieved(new Array(merged.length).fill(0));
+            setShowModal(false);
+            // load checks from localStorage as fallback (server doesn't store per-type checks yet)
+            const keyChecks = key + '-checks';
+            const storedChecks = JSON.parse(localStorage.getItem(keyChecks) || '{}');
+            setChecksByTipo(storedChecks || {});
+            return;
+          }
+        }
       }catch(e){
-        console.error('failed parse compromisos config', e);
+        console.warn('failed to load compsemanal from server', e);
+      }
+
+      // fallback to localStorage
+      const stored = localStorage.getItem(key);
+      if(stored){
+        try{
+          const cfg = JSON.parse(stored);
+          // merge with default items
+          const merged = defaultItems.map(di => {
+            const found = cfg.find(c=>c.tipo===di.tipo);
+            return { ...di, target: found ? found.target : 0 };
+          });
+          setItems(merged);
+          setAchieved(new Array(merged.length).fill(0));
+          setShowModal(false);
+          // load saved checks for this week if any
+          const keyChecks = key + '-checks';
+          const storedChecks = JSON.parse(localStorage.getItem(keyChecks) || '{}');
+          setChecksByTipo(storedChecks || {});
+        }catch(e){
+          console.error('failed parse compromisos config', e);
+          setShowModal(true);
+          // set defaults with zero targets
+          const merged = defaultItems.map(di => ({ ...di, target: 0 }));
+          setItems(merged);
+          setAchieved(new Array(merged.length).fill(0));
+        }
+      }else{
+        // open modal to define weekly targets
         setShowModal(true);
-        // set defaults with zero targets
         const merged = defaultItems.map(di => ({ ...di, target: 0 }));
         setItems(merged);
         setAchieved(new Array(merged.length).fill(0));
+        setChecksByTipo({});
       }
-    }else{
-      // open modal to define weekly targets
-      setShowModal(true);
-      const merged = defaultItems.map(di => ({ ...di, target: 0 }));
-      setItems(merged);
-      setAchieved(new Array(merged.length).fill(0));
-      setChecksByTipo({});
-    }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveWeeklyConfig = (cfgItems) => {
-    // cfgItems is array {tipo, target}
+    // cfgItems is array {tipo, descripcion, target}
     const key = getMondayKey();
     localStorage.setItem(key, JSON.stringify(cfgItems));
-    // persist to current user's profile
+    // also persist to server compsemanal table if user available
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
+    if (email) {
+      (async ()=>{
+        try{
+          const weekStart = key.split('-').slice(-3).join('-');
+          // post each item as a row: tipo→Factor, descripcion→Descripcion, target→DiasCantidad
+          for (const it of cfgItems) {
+            await fetch(`${serverUrl}/api/compromisos`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, Factor: it.tipo, Descripcion: it.descripcion, DiasCantidad: it.target, Regis_Fecha: weekStart })
+            });
+          }
+        }catch(e){
+          console.warn('failed to save weekly config to server', e);
+        }
+      })();
+    }
+    // persist to current user's profile (in-memory)
     if (typeof updateCurrentUserData === 'function') {
       updateCurrentUserData(prev => ({
         ...prev,
@@ -94,7 +146,7 @@ export default function Compromisos() {
     // update items state merging with descriptors
     const merged = defaultItems.map(di => {
       const found = cfgItems.find(c=>c.tipo===di.tipo);
-      return { ...di, target: found ? found.target : 0 };
+      return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 0 };
     });
     setItems(merged);
     setAchieved(new Array(merged.length).fill(0));
@@ -116,7 +168,7 @@ export default function Compromisos() {
       const next = { ...(existing || {}), [tipo]: checkedArray };
       localStorage.setItem(keyChecks, JSON.stringify(next));
       setChecksByTipo(next);
-      // also persist into user's profile under compromisosChecks
+      // also persist into user's profile (in-memory)
       if (typeof updateCurrentUserData === 'function') {
         updateCurrentUserData(prev => ({
           ...prev,

@@ -59,7 +59,10 @@
     display: flex;
     justify-content: space-between;
 }
-
+.modal-compromisos-item{
+  display: flex;
+  justify-content: space-between;
+}
 .modal-label{display:flex;flex-direction:column;font-weight:700;color:#333;gap:6px}
 .modal-input{padding:8px;border-radius:8px;border:1px solid #ddd}
 

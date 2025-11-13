@@ -2,7 +2,7 @@ import '../hojas-estilo/Asistencia.css';
 import BackCircle from '../componentes/BackCircle';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
@@ -14,11 +14,21 @@ const IconCheck = <FontAwesomeIcon icon={faCheck} style={{ color: '#ffffff' }} /
 
 export default function Asistencia() {
   const [checkedDays, setCheckedDays] = useState([false, false, false, false, false]);
-  const [attendancePercentage, setAttendancePercentage] = useState(0);
   const [daysAttended, setDaysAttended] = useState(0);
   const [daysAbsent, setDaysAbsent] = useState(0);
   const [walletAmount, setWalletAmount] = useState(0);
-  const { updateCurrentUserData } = useAuth();
+  const [monthlyStats, setMonthlyStats] = useState({ attended: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
+
+  const prevCheckedRef = useRef(checkedDays);
+
+  const arraysEqual = (a, b) => {
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
 
   // Get semester week number (counting from July 7th)
   const getWeekNumber = (d = new Date()) => {
@@ -59,7 +69,10 @@ export default function Asistencia() {
     const y = monday.getFullYear();
     const m = String(monday.getMonth() + 1).padStart(2, '0');
     const dayd = String(monday.getDate()).padStart(2, '0');
-    return `asistencia-week-${y}-${m}-${dayd}`;
+    return {
+      weekKey: `asistencia-week-${y}-${m}-${dayd}`,
+      monthKey: `asistencia-month-${y}-${m}`
+    };
   };
 
   const handleCheck = (index) => {
@@ -68,43 +81,133 @@ export default function Asistencia() {
     setCheckedDays(newCheckedDays);
   };
 
-  const calculateWalletAmount = (attendance) => {
-    if (attendance === 5) return 20000;
-    if (attendance === 4) return 10000;
+  const calculateWalletAmount = (percentage) => {
+    // ranges: 60-69% → $10k, 70-79% → $15k, 80-89% → $20k, 90-100% → $25k
+    if (percentage >= 90) return 25000;
+    if (percentage >= 80) return 20000;
+    if (percentage >= 70) return 15000;
+    if (percentage >= 60) return 10000;
     return 0;
   };
 
   useEffect(() => {
+    // On mount: load asistencia data for current week from /api/asistenciaRange
+    if (!currentUser || !currentUser.email) {
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const email = currentUser.email;
+    
+    // Get current week's Monday and Friday dates
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day === 0) ? -6 : (1 - day);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    
+    const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    const endStr = `${friday.getFullYear()}-${String(friday.getMonth() + 1).padStart(2, '0')}-${String(friday.getDate()).padStart(2, '0')}`;
+    
+    (async () => {
+      try {
+        // Fetch week's asistencia records
+        const res = await fetch(`${serverUrl}/api/asistenciaRange?email=${encodeURIComponent(email)}&start=${startStr}&end=${endStr}`);
+        const json = await res.json();
+        
+        if (json.ok && Array.isArray(json.rows)) {
+          // Build checked array from DB records (1 = checked, 0 = not checked)
+          const weekChecks = [false, false, false, false, false];
+          for (const row of json.rows) {
+            const date = new Date(row.Fecha_Regis);
+            const dayIndex = date.getDay() === 0 ? 4 : (date.getDay() - 1); // Mon=0..Fri=4
+            if (dayIndex >= 0 && dayIndex < 5) {
+              weekChecks[dayIndex] = row.Asistencia === 1;
+            }
+          }
+          setCheckedDays(weekChecks);
+          prevCheckedRef.current = weekChecks;
+        }
+        
+        // Fetch month summary to compute stats
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const summaryRes = await fetch(`${serverUrl}/api/monthSummary?email=${encodeURIComponent(email)}&month=${monthStr}`);
+        const summaryJson = await summaryRes.json();
+        if (summaryJson.ok) {
+          setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
+        }
+      } catch (e) {
+        console.error('failed to load asistencia from server', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [currentUser]);
+
+  // Effect: when checkedDays changes, sync to server and update stats
+  useEffect(() => {
+    if (loading || !currentUser || !currentUser.email) return;
+    
+    // Check if checkedDays actually changed
+    if (arraysEqual(prevCheckedRef.current, checkedDays)) return;
+    
+    prevCheckedRef.current = checkedDays;
+    
     const attended = checkedDays.filter(day => day).length;
     const absent = checkedDays.length - attended;
-    const percentage = (attended / checkedDays.length) * 100;
     
     setDaysAttended(attended);
     setDaysAbsent(absent);
-    setAttendancePercentage(percentage);
     
-    // Calculate wallet amount based only on number of days attended
-    setWalletAmount(calculateWalletAmount(attended));
-    // persist attendance for the current user for this week
-    try{
-      const key = getMondayKey();
-      if(typeof updateCurrentUserData === 'function'){
-        updateCurrentUserData(prev => ({
-          ...prev,
-          asistencia: {
-            ...(prev && prev.asistencia ? prev.asistencia : {}),
-            [key]: checkedDays
-          }
-        }));
+    // Sync to server
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const email = currentUser.email;
+    
+    // Build asistencia map for this week
+    const now = new Date();
+    const day = now.getDay();
+    const diff = (day === 0) ? -6 : (1 - day);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    
+    const { weekKey } = getMondayKey(monday);
+    const asistenciaMap = { [weekKey]: checkedDays };
+    
+    (async () => {
+      try {
+        await fetch(`${serverUrl}/api/syncAsistencia`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, asistencia: asistenciaMap })
+        });
+        
+        // Refresh monthly stats
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const summaryRes = await fetch(`${serverUrl}/api/monthSummary?email=${encodeURIComponent(email)}&month=${monthStr}`);
+        const summaryJson = await summaryRes.json();
+        if (summaryJson.ok) {
+          setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
+        }
+      } catch (e) {
+        console.error('failed to sync asistencia', e);
       }
-    }catch(e){
-      console.error('persist asistencia failed', e);
-    }
-  }, [checkedDays, updateCurrentUserData]);
+    })();
+  }, [checkedDays, currentUser, loading]);
 
+  // Effect: update wallet amount when monthly stats change
+  useEffect(() => {
+    const monthlyPercentage = monthlyStats.total > 0 ? (monthlyStats.attended / monthlyStats.total) * 100 : 0;
+    setWalletAmount(calculateWalletAmount(monthlyPercentage));
+  }, [monthlyStats]);
+
+  const monthlyPercentage = monthlyStats.total > 0 ? (monthlyStats.attended / monthlyStats.total) * 100 : 0;
   const chartData = {
     datasets: [{
-      data: [attendancePercentage, 100 - attendancePercentage],
+      data: [monthlyPercentage, 100 - monthlyPercentage],
       backgroundColor: ['#A52488', '#E8E8E8'],
       borderWidth: 0,
       cutout: '80%'
@@ -169,10 +272,10 @@ export default function Asistencia() {
         <div className="chart-wrapper">
           <Doughnut data={chartData} options={chartOptions} />
           <div className="percentage-text">
-            {Math.round(attendancePercentage)}%
+            {Math.round(monthlyPercentage)}%
           </div>
         </div>
-        <div className="chart-label">Asistencia</div>
+        <div className="chart-label">Asistencia Mensual</div>
       </div>    
     </div>
   );

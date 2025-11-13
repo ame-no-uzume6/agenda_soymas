@@ -20,6 +20,7 @@ export default function Calendario() {
   const [tasks, setTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null); // {y,m,d}
   const [editingTask, setEditingTask] = useState(null);
+  const [tasksRefreshKey, setTasksRefreshKey] = useState(0); // trigger to refresh CalendarioMes
 
   const keyForDate = (date) => {
     if(!date) return null;
@@ -53,56 +54,98 @@ export default function Calendario() {
   };
 
   // addTask via modal submit — store object {name,date,time}
-  const handleModalSubmit = ({ name, date, time }) => {
+  const handleModalSubmit = async ({ name, date, time }) => {
     // date is YYYY-MM-DD
     const [yStr, mStr, dStr] = date.split('-');
     const dateKey = { y: parseInt(yStr, 10), m: parseInt(mStr, 10) - 1, d: parseInt(dStr, 10) };
     // If editingTask is set, update existing task (may move between dates). Otherwise create new.
     if (editingTask) {
-      // remove from old date key
-      const oldDateParts = (editingTask.date || '').split('-');
-      if (oldDateParts.length === 3) {
-        const oldKeyObj = { y: parseInt(oldDateParts[0],10), m: parseInt(oldDateParts[1],10)-1, d: parseInt(oldDateParts[2],10) };
-        const oldK = keyForDate(oldKeyObj);
-        const oldList = JSON.parse(localStorage.getItem(oldK) || '[]');
-        const filteredOld = oldList.filter(it => !(it && it.id && editingTask.id && it.id === editingTask.id));
-        localStorage.setItem(oldK, JSON.stringify(filteredOld));
-      }
+      // update existing task via API or, if date changed, recreate on new date
+      const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      const userEmail = currentUser && currentUser.email ? currentUser.email : '';
+      // build FechaHora ISO if time provided
+      const fechaHora = time ? `${date}T${time}:00` : null;
 
-      // add to new date key
-      const newK = keyForDate(dateKey);
-      const existingNew = JSON.parse(localStorage.getItem(newK) || '[]');
-      const updatedTask = { ...editingTask, name, date, time };
-      const updatedNew = [updatedTask, ...existingNew];
-        const sortedUpdated = sortTasks(updatedNew);
-        localStorage.setItem(newK, JSON.stringify(sortedUpdated));
-
-      // if new date equals selectedDate, refresh visible list
-      if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
-          setTasks(sortedUpdated);
-      } else if (selectedDate) {
-        // if we removed from the currently selected date, refresh that list too
-        const selK = keyForDate(selectedDate);
-        const selList = JSON.parse(localStorage.getItem(selK) || '[]');
-        setTasks(selList);
+      // If date changed (editingTask.date exists and differs), delete old and create new
+      if (editingTask.date && editingTask.date !== date) {
+        try {
+          if (editingTask.id && userEmail) {
+            await fetch(`${serverUrl}/api/tasks/${editingTask.id}`, { method: 'DELETE' });
+          }
+          // create new
+          if (userEmail) {
+            const res = await fetch(`${serverUrl}/api/tasks`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: userEmail, FechaHora: fechaHora, Descripcion: name })
+            });
+            const data = await res.json();
+            // refresh list for selectedDate if it matches new date
+            if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
+              const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${date}`);
+              const json = await listRes.json();
+              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : date), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+            }
+          }
+        } catch (e) {
+          console.error('update task (move) failed', e);
+        }
+      } else {
+        // same date — update in place
+        try {
+          if (editingTask.id && userEmail) {
+            await fetch(`${serverUrl}/api/tasks/${editingTask.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ FechaHora: fechaHora, Descripcion: name })
+            });
+            // refresh list
+            if (selectedDate) {
+              const d = `${selectedDate.y}-${String(selectedDate.m+1).padStart(2,'0')}-${String(selectedDate.d).padStart(2,'0')}`;
+              const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
+              const json = await listRes.json();
+              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+            }
+          }
+        } catch (e) {
+          console.error('update task failed', e);
+        }
       }
 
       setEditingTask(null);
       setAdding(false);
+      // Trigger CalendarioMes to refresh task indicators
+      setTasksRefreshKey(prev => prev + 1);
       return;
     }
 
     // create new task
-    const k = keyForDate(dateKey);
-    const existing = JSON.parse(localStorage.getItem(k) || '[]');
-    const newTask = { id: Date.now(), name, date, time };
-    const updated = [newTask, ...existing];
-      const sorted = sortTasks(updated);
-      localStorage.setItem(k, JSON.stringify(sorted));
-
-    // If the modal date matches currently selectedDate, refresh the tasks list shown
-    if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
-        setTasks(sorted);
+    // create new task via API
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const userEmail = currentUser && currentUser.email ? currentUser.email : '';
+    const fechaHora = time ? `${date}T${time}:00` : null;
+    try {
+      if (userEmail) {
+        const res = await fetch(`${serverUrl}/api/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userEmail, FechaHora: fechaHora, Descripcion: name })
+        });
+        const data = await res.json();
+      }
+      // refresh visible list if needed
+      if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
+        const d = `${dateKey.y}-${String(dateKey.m+1).padStart(2,'0')}-${String(dateKey.d).padStart(2,'0')}`;
+        if (userEmail) {
+          const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
+          const json = await listRes.json();
+          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+        }
+      }
+      // Trigger CalendarioMes to refresh task indicators
+      setTasksRefreshKey(prev => prev + 1);
+    } catch (e) {
+      console.error('create task failed', e);
     }
 
     setAdding(false);
@@ -111,32 +154,53 @@ export default function Calendario() {
   // remove by item (object or string) to avoid index-capture bugs with delayed deletes
   const removeTask = (item) => {
     if (!selectedDate) return;
-    const k = keyForDate(selectedDate);
-    const existing = JSON.parse(localStorage.getItem(k) || '[]');
-
-    const matchIndex = existing.findIndex((it) => {
-      // both legacy string tasks and new object tasks supported
-      if (typeof item === 'string') return it === item;
-      if (typeof it === 'string') return it === item.name; // best-effort
-      // if objects, prefer id match
-      if (it && it.id && item && item.id) return it.id === item.id;
-      // fallback compare by name/date/time
-      return it.name === item.name && it.date === item.date && it.time === item.time;
-    });
-
-    if (matchIndex === -1) return;
-
-    const updated = existing.filter((_, i) => i !== matchIndex);
-    const sorted = sortTasks(updated);
-    localStorage.setItem(k, JSON.stringify(sorted));
-    setTasks(sorted);
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const userEmail = currentUser && currentUser.email ? currentUser.email : '';
+    // if item has id and we have user on server, delete remotely
+    (async () => {
+      try {
+        if (item && item.id && userEmail) {
+          await fetch(`${serverUrl}/api/tasks/${item.id}`, { method: 'DELETE' });
+        }
+        // refresh list for selectedDate
+        const d = `${selectedDate.y}-${String(selectedDate.m+1).padStart(2,'0')}-${String(selectedDate.d).padStart(2,'0')}`;
+        if (userEmail) {
+          const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
+          const json = await listRes.json();
+          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+        }
+        // Trigger CalendarioMes to refresh task indicators
+        setTasksRefreshKey(prev => prev + 1);
+      } catch (e) {
+        console.error('delete task failed', e);
+      }
+    })();
   };
 
   const onDateSelect = (date) => {
     setSelectedDate(date);
-    const k = keyForDate(date);
-    const existing = JSON.parse(localStorage.getItem(k) || '[]');
-    setTasks(sortTasks(existing));
+    // fetch tasks for this date from server
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const userEmail = currentUser && currentUser.email ? currentUser.email : '';
+    const d = `${date.y}-${String(date.m+1).padStart(2,'0')}-${String(date.d).padStart(2,'0')}`;
+    (async () => {
+      try {
+        if (userEmail) {
+          const res = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
+          const json = await res.json();
+          if (json.ok) {
+            const mapped = json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }));
+            setTasks(sortTasks(mapped));
+            return;
+          }
+        }
+        // fallback: no user or server failed -> empty
+        setTasks([]);
+      } catch (e) {
+        console.error('fetch tasks failed', e);
+        setTasks([]);
+      }
+    })();
     setAdding(false);
   };
 
@@ -160,7 +224,7 @@ export default function Calendario() {
         </div>
       </div>
       <div className="calendario calendario-inicio">
-          <CalendarioMes onDateSelect={onDateSelect} selectedDate={selectedDate} />
+          <CalendarioMes key={tasksRefreshKey} onDateSelect={onDateSelect} selectedDate={selectedDate} />
       </div>
       
       <div className="tareas-contenedor-contenedor">

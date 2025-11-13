@@ -54,7 +54,10 @@ export default function CompromisosModal({ visible, onClose, onSubmit, defaultCo
           <div className='modal-items'>
             {items.map((it, idx) => (
               <div key={it.tipo} className='modal-item'>
-                <div>{it.tipo}</div>
+                <div className='modal-compromisos-item'>
+                  <div>{it.tipo}</div>
+                  <div>Días a la semana</div>
+                </div>
                 <div className='modal-inputs'>
                     <input className="modal-input" type="text" value={it.descripcion || ''} onChange={e=>updateDescription(idx, e.target.value)} style={{width:250}} placeholder="Descripción del compromiso" />
                     <input className="modal-input" type="number" min="0" max="7" value={it.target} onChange={e=>updateTarget(idx, Math.max(0, Math.min(7, Number(e.target.value || 0))))} style={{width:80}} />

@@ -12,11 +12,17 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const doLogin = async () => {
-    const res = login(email.trim(), password);
-    if(res.ok){
-      navigate('/calendario-inicio');
-    }else{
-      setError(res.message || 'Error al iniciar sesión');
+    setError('');
+    try {
+      const res = await login(email.trim(), password);
+      if(res && res.ok){
+        navigate('/calendario-inicio');
+      } else {
+        setError(res && res.message ? res.message : 'Error al iniciar sesión');
+      }
+    } catch (e) {
+      console.error('login exception', e);
+      setError('Error de red al iniciar sesión');
     }
   }
 

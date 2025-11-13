@@ -76,17 +76,25 @@
 .calendario-grid{
   display: grid;
   grid-template-columns: repeat(7,1fr);
+  gap: 8px;
 }
-.cal-cell{min-height:44px; display:flex; align-items:flex-start; justify-content:center; position:relative}
+.cal-cell{
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
 .cal-cell.empty{opacity:0}
 .day-circle{
-  width:30px;
-  height:30px;
-  border-radius:50%;
-  background:#e6cfe0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e6cfe0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background-color 0.2s ease;
   cursor: pointer;
 }
@@ -96,7 +104,7 @@
 }
 
 .day-circle.today{
-  outline:2px solid #A52488
+  outline: 2px solid #A52488;
 }
 
 .day-circle.selected{
@@ -104,10 +112,21 @@
 }
 
 .day-number{
-  color:white;
-  font-weight:800
+  color: white;
+  font-weight: 800;
 }
-.tasks-indicator{position:absolute; right:6px; top:6px; width:8px;height:8px;border-radius:50%;background:#A52488}
+
+.tasks-indicator{
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #A52488;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 0 0 2px #ffffff;
+  border: 1px solid #ffffff;
+}
 
 .calendario-mes input{width:100%; padding:6px;border-radius:6px;border:1px solid #ddd}
 .calendario-mes button{background:#A52488;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
