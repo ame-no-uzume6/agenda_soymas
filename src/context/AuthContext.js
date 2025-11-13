@@ -34,6 +34,23 @@ export function AuthProvider({ children }){
   };
 
   const logout = () =>{
+    // Clear any client-side user-specific cached data to fully disconnect the previous user
+    try{
+      const prefixes = ['compromisos-week-', 'tasks-', 'asistencia-'];
+      // iterate backwards because removing keys mutates length
+      for(let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        for(const p of prefixes){
+          if (key.startsWith(p)) {
+            localStorage.removeItem(key);
+            break;
+          }
+        }
+      }
+    }catch(e){
+      console.warn('logout cleanup failed', e);
+    }
     setCurrentUser(null);
   };
 

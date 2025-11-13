@@ -3,43 +3,74 @@ import { useState, useEffect } from 'react';
 
 // default types moved to module scope to keep a stable reference for hooks
 const DEFAULT_TYPES = [
-  { tipo: 'DEPORTE', descripcion: 'Yoga 30 min', target: 3 },
-  { tipo: 'SUEÑO', descripcion: '8 horas', target: 7 },
-  { tipo: 'NUTRICIÓN', descripcion: 'Comida equilibrada', target: 5 },
-  { tipo: 'SALUD MENTAL', descripcion: 'Terapia breve', target: 1 },
-  { tipo: 'MINDFULNESS', descripcion: 'Meditación 10 min', target: 3 },
-  { tipo: 'RELACIONES', descripcion: 'Contactar a un amigo', target: 1 }
+  { tipo: 'DEPORTE', descripcion: '', target: 3 },
+  { tipo: 'SUEÑO', descripcion: '', target: 7 },
+  { tipo: 'NUTRICIÓN', descripcion: '', target: 5 },
+  { tipo: 'SALUD MENTAL', descripcion: '', target: 1 },
+  { tipo: 'MINDFULNESS', descripcion: '', target: 3 },
+  { tipo: 'RELACIONES', descripcion: '', target: 1 }
 ];
 
 export default function CompromisosModal({ visible, onClose, onSubmit, defaultConfig }){
-  const [items, setItems] = useState(defaultConfig || DEFAULT_TYPES);
+  // normalize incoming config: ensure descripcion string and target at least 1
+  // always keep descripcion empty so the modal shows only the placeholder
+  const normalize = (arr) => (arr || DEFAULT_TYPES).map(it => ({
+    tipo: it.tipo,
+    descripcion: '',
+    target: Math.max(1, Number(it.target || 1))
+  }));
+
+  const [items, setItems] = useState(() => normalize(defaultConfig));
+  const [errors, setErrors] = useState({});
 
   useEffect(()=>{
     if(defaultConfig){
-      setItems(defaultConfig);
+      setItems(normalize(defaultConfig));
     }
   },[defaultConfig]);
 
   useEffect(()=>{
     if(!visible){
-      setItems(defaultConfig || DEFAULT_TYPES);
+      setItems(normalize(defaultConfig));
+      setErrors({});
     }
   },[visible, defaultConfig]);
 
   if(!visible) return null;
 
   const updateTarget = (index, value) => {
-    const copy = items.map((it, i)=> i===index ? { ...it, target: value } : it);
+    const v = Math.max(1, Math.min(7, Number(value || 1)));
+    const copy = items.map((it, i)=> i===index ? { ...it, target: v } : it);
     setItems(copy);
+    setErrors(prev => ({ ...prev, [index]: undefined }));
   };
 
   const updateDescription = (index, value) => {
     const copy = items.map((it, i)=> i===index ? { ...it, descripcion: value } : it);
     setItems(copy);
+    setErrors(prev => ({ ...prev, [index]: undefined }));
   };
 
   const submit = (e)=>{
     e.preventDefault();
+    // validate: each item must have a non-empty descripcion and target between 1 and 7
+    const newErrors = {};
+    items.forEach((it, idx) => {
+      if(!it.descripcion || String(it.descripcion).trim() === ''){
+        newErrors[idx] = 'La descripción no puede quedar vacía.';
+      } else if(!Number.isFinite(Number(it.target)) || Number(it.target) < 1 || Number(it.target) > 7){
+        newErrors[idx] = 'Días debe ser un número entre 1 y 7.';
+      }
+    });
+
+    if(Object.keys(newErrors).length > 0){
+      setErrors(newErrors);
+      // focus not implemented; just keep modal open
+      return;
+    }
+
+    // all good
+    setErrors({});
     onSubmit(items);
   };
 
@@ -60,8 +91,9 @@ export default function CompromisosModal({ visible, onClose, onSubmit, defaultCo
                 </div>
                 <div className='modal-inputs'>
                     <input className="modal-input" type="text" value={it.descripcion || ''} onChange={e=>updateDescription(idx, e.target.value)} style={{width:250}} placeholder="Descripción del compromiso" />
-                    <input className="modal-input" type="number" min="0" max="7" value={it.target} onChange={e=>updateTarget(idx, Math.max(0, Math.min(7, Number(e.target.value || 0))))} style={{width:80}} />
+                    <input className="modal-input" type="number" min="1" max="7" value={it.target} onChange={e=>updateTarget(idx, e.target.value)} style={{width:80}} />
                 </div>
+                {errors[idx] && <div className='modal-error' role='alert' style={{color:'#b00020', marginTop:6}}>{errors[idx]}</div>}
               </div>
             ))}
           </div>

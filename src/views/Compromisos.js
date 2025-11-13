@@ -111,8 +111,19 @@ export default function Compromisos() {
 
   const saveWeeklyConfig = (cfgItems) => {
     // cfgItems is array {tipo, descripcion, target}
+    // validate before saving: descripcion not empty and target between 1 and 7
+    const invalid = cfgItems.some(it => !it.descripcion || String(it.descripcion).trim() === '' || !Number.isFinite(Number(it.target)) || Number(it.target) < 1 || Number(it.target) > 7);
+    if (invalid) {
+      // keep modal open and notify user
+      window.alert('Por favor completa la descripción y establece entre 1 y 7 días para cada compromiso.');
+      setShowModal(true);
+      return;
+    }
+
     const key = getMondayKey();
-    localStorage.setItem(key, JSON.stringify(cfgItems));
+    // normalize targets to numbers >=1
+    const normalized = cfgItems.map(it => ({ ...it, target: Math.max(1, Number(it.target || 1)), descripcion: String(it.descripcion || '').trim() }));
+    localStorage.setItem(key, JSON.stringify(normalized));
     // also persist to server compsemanal table if user available
     const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
     const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
@@ -121,7 +132,7 @@ export default function Compromisos() {
         try{
           const weekStart = key.split('-').slice(-3).join('-');
           // post each item as a row: tipo→Factor, descripcion→Descripcion, target→DiasCantidad
-          for (const it of cfgItems) {
+          for (const it of normalized) {
             await fetch(`${serverUrl}/api/compromisos`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -145,8 +156,8 @@ export default function Compromisos() {
     }
     // update items state merging with descriptors
     const merged = defaultItems.map(di => {
-      const found = cfgItems.find(c=>c.tipo===di.tipo);
-      return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 0 };
+      const found = normalized.find(c=>c.tipo===di.tipo);
+      return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 1 };
     });
     setItems(merged);
     setAchieved(new Array(merged.length).fill(0));
@@ -201,7 +212,7 @@ export default function Compromisos() {
 
   return (
     <div className="compromisos-contenedor">
-      <CompromisosModal visible={showModal} onClose={() => setShowModal(false)} onSubmit={saveWeeklyConfig} defaultConfig={items.map(i=>({ tipo:i.tipo, target:i.target }))} />
+  <CompromisosModal visible={showModal} onClose={() => setShowModal(false)} onSubmit={saveWeeklyConfig} defaultConfig={items.map(i=>({ tipo:i.tipo, descripcion:i.descripcion, target:i.target }))} />
       <div className="nav-contenedor">
         <BackCircle bcolor = '#fff' color='#a52488'/>
         <h1 className="titulo-compromisos">MI COMPROMISO SEMANAL</h1>
