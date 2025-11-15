@@ -63,8 +63,8 @@ export default function Calendario() {
       // update existing task via API or, if date changed, recreate on new date
       const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
       const userEmail = currentUser && currentUser.email ? currentUser.email : '';
-      // build FechaHora ISO if time provided
-      const fechaHora = time ? `${date}T${time}:00` : null;
+      // build FechaHora string (use space separator to avoid timezone auto-conversion)
+      const fechaHora = time ? `${date} ${time}:00` : null;
 
       // If date changed (editingTask.date exists and differs), delete old and create new
       if (editingTask.date && editingTask.date !== date) {
@@ -84,7 +84,7 @@ export default function Calendario() {
             if (selectedDate && selectedDate.y === dateKey.y && selectedDate.m === dateKey.m && selectedDate.d === dateKey.d) {
               const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${date}`);
               const json = await listRes.json();
-              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : date), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? String(r.FechaHora).split(/T| /)[0] : date), time: r.FechaHora ? (String(r.FechaHora).split(/T| /)[1] || '').slice(0,5) : '' }))));
             }
           }
         } catch (e) {
@@ -97,14 +97,14 @@ export default function Calendario() {
             await fetch(`${serverUrl}/api/tasks/${editingTask.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ FechaHora: fechaHora, Descripcion: name })
+                body: JSON.stringify({ FechaHora: time ? `${date} ${time}:00` : null, Descripcion: name })
             });
             // refresh list
             if (selectedDate) {
               const d = `${selectedDate.y}-${String(selectedDate.m+1).padStart(2,'0')}-${String(selectedDate.d).padStart(2,'0')}`;
               const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
               const json = await listRes.json();
-              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+              if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? String(r.FechaHora).split(/T| /)[0] : d), time: r.FechaHora ? (String(r.FechaHora).split(/T| /)[1] || '').slice(0,5) : '' }))));
             }
           }
         } catch (e) {
@@ -139,7 +139,7 @@ export default function Calendario() {
         if (userEmail) {
           const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
           const json = await listRes.json();
-          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? String(r.FechaHora).split(/T| /)[0] : d), time: r.FechaHora ? (String(r.FechaHora).split(/T| /)[1] || '').slice(0,5) : '' }))));
         }
       }
       // Trigger CalendarioMes to refresh task indicators
@@ -167,7 +167,7 @@ export default function Calendario() {
         if (userEmail) {
           const listRes = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
           const json = await listRes.json();
-          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }))));
+          if (json.ok) setTasks(sortTasks(json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? String(r.FechaHora).split(/T| /)[0] : d), time: r.FechaHora ? (String(r.FechaHora).split(/T| /)[1] || '').slice(0,5) : '' }))));
         }
         // Trigger CalendarioMes to refresh task indicators
         setTasksRefreshKey(prev => prev + 1);
@@ -189,7 +189,7 @@ export default function Calendario() {
           const res = await fetch(`${serverUrl}/api/tasks?email=${encodeURIComponent(userEmail)}&date=${d}`);
           const json = await res.json();
           if (json.ok) {
-            const mapped = json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? r.FechaHora.split('T')[0] : d), time: r.FechaHora ? (r.FechaHora.split('T')[1] || '').slice(0,5) : '' }));
+            const mapped = json.rows.map(r => ({ id: r.IdTarea, name: r.Descripcion, date: r.FechaRegistro || (r.FechaHora? String(r.FechaHora).split(/T| /)[0] : d), time: r.FechaHora ? (String(r.FechaHora).split(/T| /)[1] || '').slice(0,5) : '' }));
             setTasks(sortTasks(mapped));
             return;
           }

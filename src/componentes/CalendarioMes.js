@@ -36,11 +36,10 @@ export default function CalendarioMes({ onDateSelect, selectedDate }){
         }
         const setDates = new Set();
         for (const r of json.rows) {
-          let date = r.FechaRegistro || (r.FechaHora ? r.FechaHora.split('T')[0] : null);
-          // Ensure we only have YYYY-MM-DD format (remove timestamp if present)
-          if (date && date.includes('T')) {
-            date = date.split('T')[0];
-          }
+          // accept FechaRegistro or FechaHora (which may use 'T' or space separator)
+          let date = null;
+          if (r.FechaRegistro) date = r.FechaRegistro;
+          else if (r.FechaHora) date = String(r.FechaHora).split(/T| /)[0];
           console.log('[CalendarioMes] Task found:', date);
           if (!date) continue;
           // only keep those in current month/year

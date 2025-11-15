@@ -25,27 +25,24 @@ function Compromiso ({ tipo = 'DEPORTE', descripcion = 'Yoga 30 min', icon = nul
   };
 
   // report initial achieved count (in case parent needs it)
+  // Also update when initialChecks changes (e.g., when loading from DB)
   useEffect(()=>{
     // If parent provided an initial checked array, apply it first
-    if(Array.isArray(initialChecks) && initialChecks.length === checked.length){
+    if(Array.isArray(initialChecks) && initialChecks.length === 7){
       setChecked(initialChecks);
       if(onAchievedChange){
         onAchievedChange(initialChecks.filter(Boolean).length);
       }
-      if(onChecksChange){
-        onChecksChange(initialChecks);
-      }
-    } else {
+      // NO llamar onChecksChange aquí - evita sobrescribir la BBDD al montar el componente
+    } else if (!initialChecks) {
+      // Si no hay initialChecks, reportar 0 achieved
       if(onAchievedChange){
-        const achieved = checked.filter(Boolean).length;
-        onAchievedChange(achieved);
+        onAchievedChange(0);
       }
-      if(onChecksChange){
-        onChecksChange(checked);
-      }
+      // NO llamar onChecksChange aquí - evita sobrescribir la BBDD al montar el componente
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialChecks]);
 
   const achievedCount = checked.filter(Boolean).length;
 

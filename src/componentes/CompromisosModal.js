@@ -3,21 +3,22 @@ import { useState, useEffect } from 'react';
 
 // default types moved to module scope to keep a stable reference for hooks
 const DEFAULT_TYPES = [
-  { tipo: 'DEPORTE', descripcion: '', target: 3 },
-  { tipo: 'SUEÑO', descripcion: '', target: 7 },
-  { tipo: 'NUTRICIÓN', descripcion: '', target: 5 },
-  { tipo: 'SALUD MENTAL', descripcion: '', target: 1 },
-  { tipo: 'MINDFULNESS', descripcion: '', target: 3 },
-  { tipo: 'RELACIONES', descripcion: '', target: 1 }
+  { tipo: 'DEPORTE', descripcion: '', target: '' },
+  { tipo: 'SUEÑO', descripcion: '', target: '' },
+  { tipo: 'NUTRICIÓN', descripcion: '', target: '' },
+  { tipo: 'SALUD MENTAL', descripcion: '', target: '' },
+  { tipo: 'MINDFULNESS', descripcion: '', target: '' },
+  { tipo: 'RELACIONES', descripcion: '', target: '' }
 ];
 
 export default function CompromisosModal({ visible, onClose, onSubmit, defaultConfig }){
   // normalize incoming config: ensure descripcion string and target at least 1
   // always keep descripcion empty so the modal shows only the placeholder
+  // and keep target empty ('') unless explicitly provided
   const normalize = (arr) => (arr || DEFAULT_TYPES).map(it => ({
     tipo: it.tipo,
     descripcion: '',
-    target: Math.max(1, Number(it.target || 1))
+    target: (it && (it.target !== undefined && it.target !== null && String(it.target).trim() !== '')) ? String(it.target) : ''
   }));
 
   const [items, setItems] = useState(() => normalize(defaultConfig));
@@ -39,8 +40,11 @@ export default function CompromisosModal({ visible, onClose, onSubmit, defaultCo
   if(!visible) return null;
 
   const updateTarget = (index, value) => {
-    const v = Math.max(1, Math.min(7, Number(value || 1)));
-    const copy = items.map((it, i)=> i===index ? { ...it, target: v } : it);
+    // allow empty string while typing (especially on mobile). Store as string.
+    const val = value === null || value === undefined ? '' : String(value).trim();
+    // if numeric, keep digits only
+    const numeric = val === '' ? '' : val.replace(/[^0-9]/g, '');
+    const copy = items.map((it, i)=> i===index ? { ...it, target: numeric } : it);
     setItems(copy);
     setErrors(prev => ({ ...prev, [index]: undefined }));
   };

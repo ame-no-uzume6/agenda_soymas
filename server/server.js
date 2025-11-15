@@ -153,10 +153,11 @@ app.get('/api/tasks', async (req, res) => {
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
     if (date) {
-      const [rows] = await pool.query('SELECT * FROM tareascalendario WHERE IdUsuario = ? AND FechaRegistro = ?', [userId, date]);
+      // return FechaHora and FechaRegistro as formatted strings to avoid JS Date->ISO conversions
+      const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro FROM tareascalendario WHERE IdUsuario = ? AND FechaRegistro = ?", [userId, date]);
       return res.json({ ok: true, rows });
     }
-    const [rows] = await pool.query('SELECT * FROM tareascalendario WHERE IdUsuario = ? ORDER BY FechaHora DESC', [userId]);
+    const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro FROM tareascalendario WHERE IdUsuario = ? ORDER BY FechaHora DESC", [userId]);
     res.json({ ok: true, rows });
   } catch (e) {
     console.error(e);
@@ -171,7 +172,7 @@ app.post('/api/tasks', async (req, res) => {
     const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
-    const fechaRegistro = FechaHora ? FechaHora.split('T')[0] : new Date().toISOString().slice(0,10);
+    const fechaRegistro = FechaHora ? String(FechaHora).split(/T| /)[0] : new Date().toISOString().slice(0,10);
     const [result] = await pool.query('INSERT INTO tareascalendario (IdUsuario, FechaHora, Descripcion, FechaRegistro) VALUES (?, ?, ?, ?)', [userId, FechaHora || null, Descripcion, fechaRegistro]);
     res.json({ ok: true, id: result.insertId });
   } catch (e) {
@@ -247,6 +248,118 @@ app.put('/api/compromisos/:id', async (req, res) => {
     const { Factor, Descripcion, DiasCantidad } = req.body;
     if (!id) return res.status(400).json({ ok: false, message: 'Missing id' });
     await pool.query('UPDATE compsemanal SET Factor = ?, Descripcion = ?, DiasCantidad = ? WHERE IdCompromiso = ?', [Factor || '', Descripcion || '', DiasCantidad || 0, id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: 'Server error' });
+  }
+});
+
+// RegistroCompromiso endpoints - para guardar checks de compromisos
+// GET: obtener registros de checks para una semana específica
+app.get('/api/registroCompromiso', async (req, res) => {
+  try {
+    const { email, weekStart } = req.query;
+    if (!email || !weekStart) return res.status(400).json({ ok: false, message: 'Missing email or weekStart' });
+
+    const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
+    if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
+    const userId = users[0].IdUsuario;
+
+    // Obtener compromisos de la semana
+    const [compromisos] = await pool.query('SELECT IdCompromiso, Factor FROM compsemanal WHERE IdUsuario = ? AND Regis_Fecha = ?', [userId, weekStart]);
+
+    if (!compromisos || compromisos.length === 0) {
+      return res.json({ ok: true, checks: {} });
+    }
+
+    // Obtener registros de checks para esos compromisos
+    const compromisosIds = compromisos.map(c => c.IdCompromiso);
+    const [registros] = await pool.query(
+      'SELECT IdRegistro, IdCompromiso, completado, fecha_completado FROM registroCompromiso WHERE IdCompromiso IN (?) AND IdUsuario = ?',
+      [compromisosIds, userId]
+    );
+
+    // Convertir registros a arrays de 7 booleanos por tipo
+    const checksPorTipo = {};
+    const weekStartDate = new Date(weekStart);
+
+    compromisos.forEach(comp => {
+      // Inicializar array de 7 días en false
+      const checksArray = [false, false, false, false, false, false, false];
+
+      // Buscar registros de este compromiso
+      const regsCompromiso = registros.filter(r => r.IdCompromiso === comp.IdCompromiso && r.completado);
+
+      regsCompromiso.forEach(reg => {
+        // Calcular qué día de la semana es (0-6)
+        const fechaCompletado = new Date(reg.fecha_completado);
+        const diffTime = fechaCompletado - weekStartDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 0 && diffDays < 7) {
+          checksArray[diffDays] = true;
+        }
+      });
+
+      checksPorTipo[comp.Factor] = checksArray;
+    });
+
+    res.json({ ok: true, checks: checksPorTipo });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: 'Server error' });
+  }
+});
+
+// POST/PUT: crear o actualizar el estado de todos los checks de un compromiso para la semana
+app.post('/api/registroCompromiso', async (req, res) => {
+  try {
+    const { email, idCompromiso, checks } = req.body;
+    // checks es un array de 7 booleanos [true, false, true, ...]
+    if (!email || !idCompromiso || !Array.isArray(checks) || checks.length !== 7) {
+      return res.status(400).json({ ok: false, message: 'Missing params or invalid checks array' });
+    }
+
+    const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
+    if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
+    const userId = users[0].IdUsuario;
+
+    // Obtener fecha de inicio de la semana del compromiso
+    const [compRows] = await pool.query('SELECT Regis_Fecha FROM compsemanal WHERE IdCompromiso = ?', [idCompromiso]);
+    if (!compRows || compRows.length === 0) {
+      return res.status(404).json({ ok: false, message: 'Compromiso not found' });
+    }
+    const weekStart = compRows[0].Regis_Fecha;
+
+    // Eliminar registros anteriores de esta semana para este compromiso
+    await pool.query(
+      'DELETE FROM registroCompromiso WHERE IdCompromiso = ? AND IdUsuario = ?',
+      [idCompromiso, userId]
+    );
+
+    // Insertar nuevos registros solo para los días marcados como true
+    const insertPromises = [];
+    for (let i = 0; i < checks.length; i++) {
+      if (checks[i]) {
+        // Calcular la fecha del día específico
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(dayDate.getDate() + i);
+        const fechaCompletado = dayDate.toISOString().slice(0, 19).replace('T', ' ');
+
+        insertPromises.push(
+          pool.query(
+            'INSERT INTO registroCompromiso (IdCompromiso, IdUsuario, completado, fecha_completado) VALUES (?, ?, ?, ?)',
+            [idCompromiso, userId, true, fechaCompletado]
+          )
+        );
+      }
+    }
+
+    if (insertPromises.length > 0) {
+      await Promise.all(insertPromises);
+    }
+
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
