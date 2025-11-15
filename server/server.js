@@ -78,13 +78,13 @@ app.post('/api/syncAsistencia', async (req, res) => {
       for (const [key, weekArr] of Object.entries(asistencia)) {
         if (!key.startsWith('asistencia-week-')) continue;
         const datePart = key.replace('asistencia-week-', ''); // YYYY-MM-DD (monday)
-        const mondayDate = new Date(datePart);
-        if (isNaN(mondayDate)) continue;
+        const [year, month, day] = datePart.split('-').map(Number);
+        if (!year || !month || !day) continue;
 
         // iterate 5 days (Mon-Fri)
         for (let i = 0; i < weekArr.length; i++) {
-          const dayDate = new Date(mondayDate);
-          dayDate.setDate(mondayDate.getDate() + i);
+          // Crear fecha con componentes locales para evitar problemas de zona horaria
+          const dayDate = new Date(year, month - 1, day + i);
           const yyyy = dayDate.getFullYear();
           const mm = String(dayDate.getMonth() + 1).padStart(2, '0');
           const dd = String(dayDate.getDate()).padStart(2, '0');

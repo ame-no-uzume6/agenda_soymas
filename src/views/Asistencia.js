@@ -23,6 +23,28 @@ export default function Asistencia() {
 
   const prevCheckedRef = useRef(checkedDays);
 
+  // Función para actualizar estadísticas mensuales desde la base de datos
+  const updateMonthlyStatsFromDB = async () => {
+    if (!currentUser || !currentUser.email) return;
+
+    const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const email = currentUser.email;
+    const now = new Date();
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    try {
+      const summaryRes = await fetch(`${serverUrl}/api/monthSummary?email=${encodeURIComponent(email)}&month=${monthStr}`);
+      const summaryJson = await summaryRes.json();
+      if (summaryJson.ok) {
+        setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
+        setDaysAttended(summaryJson.attended);
+        setDaysAbsent(summaryJson.total - summaryJson.attended);
+      }
+    } catch (e) {
+      console.error('failed to load monthly stats from server', e);
+    }
+  };
+
   const arraysEqual = (a, b) => {
     if (!a || !b) return false;
     if (a.length !== b.length) return false;
@@ -124,8 +146,10 @@ export default function Asistencia() {
           const weekChecks = [false, false, false, false, false];
           for (const row of json.rows) {
             const date = new Date(row.Fecha_Regis);
-            const dayIndex = date.getDay() === 0 ? 4 : (date.getDay() - 1); // Mon=0..Fri=4
-            if (dayIndex >= 0 && dayIndex < 5) {
+            const jsDay = date.getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+            // Mapear Lun=0, Mar=1, Mié=2, Jue=3, Vie=4
+            if (jsDay >= 1 && jsDay <= 5) { // Solo de Lunes a Viernes
+              const dayIndex = jsDay - 1; // Lun(1) -> 0, Mar(2) -> 1, ..., Vie(5) -> 4
               weekChecks[dayIndex] = row.Asistencia === 1;
             }
           }
@@ -133,13 +157,8 @@ export default function Asistencia() {
           prevCheckedRef.current = weekChecks;
         }
         
-        // Fetch month summary to compute stats
-        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const summaryRes = await fetch(`${serverUrl}/api/monthSummary?email=${encodeURIComponent(email)}&month=${monthStr}`);
-        const summaryJson = await summaryRes.json();
-        if (summaryJson.ok) {
-          setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
-        }
+        // Cargar estadísticas mensuales desde la base de datos
+        await updateMonthlyStatsFromDB();
       } catch (e) {
         console.error('failed to load asistencia from server', e);
       } finally {
@@ -151,32 +170,26 @@ export default function Asistencia() {
   // Effect: when checkedDays changes, sync to server and update stats
   useEffect(() => {
     if (loading || !currentUser || !currentUser.email) return;
-    
+
     // Check if checkedDays actually changed
     if (arraysEqual(prevCheckedRef.current, checkedDays)) return;
-    
+
     prevCheckedRef.current = checkedDays;
-    
-    const attended = checkedDays.filter(day => day).length;
-    const absent = checkedDays.length - attended;
-    
-    setDaysAttended(attended);
-    setDaysAbsent(absent);
-    
+
     // Sync to server
     const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
     const email = currentUser.email;
-    
+
     // Build asistencia map for this week
     const now = new Date();
     const day = now.getDay();
     const diff = (day === 0) ? -6 : (1 - day);
     const monday = new Date(now);
     monday.setDate(now.getDate() + diff);
-    
+
     const { weekKey } = getMondayKey(monday);
     const asistenciaMap = { [weekKey]: checkedDays };
-    
+
     (async () => {
       try {
         await fetch(`${serverUrl}/api/syncAsistencia`, {
@@ -184,19 +197,14 @@ export default function Asistencia() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, asistencia: asistenciaMap })
         });
-        
-        // Refresh monthly stats
-        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const summaryRes = await fetch(`${serverUrl}/api/monthSummary?email=${encodeURIComponent(email)}&month=${monthStr}`);
-        const summaryJson = await summaryRes.json();
-        if (summaryJson.ok) {
-          setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
-        }
+
+        // Actualizar estadísticas mensuales desde la base de datos
+        await updateMonthlyStatsFromDB();
       } catch (e) {
         console.error('failed to sync asistencia', e);
       }
     })();
-  }, [checkedDays, currentUser, loading]);
+  }, [checkedDays, currentUser, loading, updateMonthlyStatsFromDB]);
 
   // Effect: update wallet amount when monthly stats change
   useEffect(() => {
