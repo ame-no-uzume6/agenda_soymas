@@ -38,7 +38,8 @@ export default function Asistencia() {
       if (summaryJson.ok) {
         setMonthlyStats({ attended: summaryJson.attended, total: summaryJson.total });
         setDaysAttended(summaryJson.attended);
-        setDaysAbsent(summaryJson.total - summaryJson.attended);
+        // Use the absent count from server (only counts past business days without attendance)
+        setDaysAbsent(summaryJson.absent || 0);
       }
     } catch (e) {
       console.error('failed to load monthly stats from server', e);

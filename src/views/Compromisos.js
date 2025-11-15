@@ -202,6 +202,23 @@ export default function Compromisos() {
   // percent guard (clamp to 100)
   const percent = totalTarget > 0 ? Math.min(100, Math.round((totalAchieved / totalTarget) * 100)) : 0;
 
+  // Function to get motivational phrase based on completion percentage
+  const getMotivationalPhrase = (percentage) => {
+    if (percentage === 0) {
+      return '¡Comienza hoy, tú puedes!';
+    } else if (percentage > 0 && percentage < 25) {
+      return '¡Buen inicio, sigue adelante!';
+    } else if (percentage >= 25 && percentage < 50) {
+      return '¡Vas por buen camino!';
+    } else if (percentage >= 50 && percentage < 75) {
+      return '¡Vas genial, sigue así!';
+    } else if (percentage >= 75 && percentage < 100) {
+      return '¡Excelente trabajo, casi lo logras!';
+    } else {
+      return '¡Increíble! ¡Completaste tu compromiso semanal!';
+    }
+  };
+
   return (
     <div className="compromisos-contenedor">
   <CompromisosModal visible={showModal} onClose={() => setShowModal(false)} onSubmit={saveWeeklyConfig} defaultConfig={items.map(i=>({ tipo:i.tipo, descripcion:i.descripcion, target:i.target }))} />
@@ -244,7 +261,7 @@ export default function Compromisos() {
             </div>
           </div>
         </div>
-        <div className="resumen-compromisos-frase">¡Vas genial, sigue así!</div>
+        <div className="resumen-compromisos-frase">{getMotivationalPhrase(percent)}</div>
       </div>
     </div>
   );

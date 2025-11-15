@@ -458,12 +458,34 @@ app.get('/api/monthSummary', async (req, res) => {
     const monthIndex = parseInt(monthStr, 10) - 1;
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-    // compute total working days
+    // get current date
+    const today = new Date();
+    const todayYear = today.getFullYear();
+    const todayMonth = today.getMonth();
+    const todayDate = today.getDate();
+
+    // compute total working days (all month for reference)
     let totalWorkingDays = 0;
     for (let d = 1; d <= daysInMonth; d++) {
       const dd = new Date(year, monthIndex, d);
       const wd = dd.getDay();
       if (wd >= 1 && wd <= 5) totalWorkingDays++;
+    }
+
+    // compute working days that have already passed (before today)
+    let pastWorkingDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dd = new Date(year, monthIndex, d);
+      const wd = dd.getDay();
+      // only count Mon-Fri AND dates before today
+      if (wd >= 1 && wd <= 5) {
+        // check if this date is before today
+        if (year < todayYear ||
+            (year === todayYear && monthIndex < todayMonth) ||
+            (year === todayYear && monthIndex === todayMonth && d < todayDate)) {
+          pastWorkingDays++;
+        }
+      }
     }
 
     // query attended days in that month
@@ -472,7 +494,10 @@ app.get('/api/monthSummary', async (req, res) => {
     const [rows] = await pool.query('SELECT COUNT(*) as attended FROM asistencia WHERE IdUsuario = ? AND Fecha_Regis BETWEEN ? AND ? AND Asistencia = 1', [userId, startDate, endDate]);
     const attended = rows && rows[0] ? rows[0].attended : 0;
 
-    res.json({ ok: true, attended, total: totalWorkingDays });
+    // absent days = past working days - attended days
+    const absent = pastWorkingDays - attended;
+
+    res.json({ ok: true, attended, total: totalWorkingDays, absent });
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false, message: 'Server error' });
