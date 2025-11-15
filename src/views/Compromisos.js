@@ -27,7 +27,7 @@ export default function Compromisos() {
   const { updateCurrentUserData, currentUser } = useAuth();
   const [checksByTipo, setChecksByTipo] = useState({});
 
-  // compute monday key
+  // compute monday date string (YYYY-MM-DD)
   const getMondayKey = (d = new Date()) => {
     const date = new Date(d);
     const day = date.getDay();
@@ -37,79 +37,65 @@ export default function Compromisos() {
     const y = monday.getFullYear();
     const m = String(monday.getMonth() + 1).padStart(2, '0');
     const dayd = String(monday.getDate()).padStart(2, '0');
-    return `compromisos-week-${y}-${m}-${dayd}`;
+    return `${y}-${m}-${dayd}`;
   };
 
   // Función para cargar datos desde el servidor
   const loadDataFromServer = async () => {
-    const key = getMondayKey();
+    const weekStart = getMondayKey();
     const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-    const weekStart = key.split('-').slice(-3).join('-'); // last 3 parts are y,m,d
     const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
 
-    try{
-      if (email) {
-        const res = await fetch(`${serverUrl}/api/compromisos?email=${encodeURIComponent(email)}&weekStart=${weekStart}`);
-        const json = await res.json();
-        if (json.ok && Array.isArray(json.rows) && json.rows.length > 0) {
-          // map rows to config items: Factor=tipo, Descripcion=descripcion, DiasCantidad=target, IdCompromiso
-          const cfg = json.rows.map(r => ({ tipo: r.Factor, descripcion: r.Descripcion, target: r.DiasCantidad, idCompromiso: r.IdCompromiso }));
-          const merged = defaultItems.map(di => {
-            const found = cfg.find(c=>c.tipo===di.tipo);
-            return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 0, idCompromiso: found ? found.idCompromiso : null };
-          });
-          setItems(merged);
-          setAchieved(new Array(merged.length).fill(0));
-          setShowModal(false);
-
-          // Cargar checks desde la BBDD
-          try {
-            const checksRes = await fetch(`${serverUrl}/api/registroCompromiso?email=${encodeURIComponent(email)}&weekStart=${weekStart}`);
-            const checksJson = await checksRes.json();
-            console.log('Checks cargados desde BBDD:', checksJson.checks);
-            if (checksJson.ok && checksJson.checks) {
-              setChecksByTipo(checksJson.checks);
-            } else {
-              setChecksByTipo({});
-            }
-          } catch(e) {
-            console.warn('failed to load checks from server', e);
-            setChecksByTipo({});
-          }
-          return;
-        }
-      }
-    }catch(e){
-      console.warn('failed to load compsemanal from server', e);
+    if (!email) {
+      // Sin usuario, mostrar modal para definir compromisos
+      setShowModal(true);
+      const merged = defaultItems.map(di => ({ ...di, target: 0 }));
+      setItems(merged);
+      setAchieved(new Array(merged.length).fill(0));
+      setChecksByTipo({});
+      return;
     }
 
-    // fallback to localStorage
-    const stored = localStorage.getItem(key);
-    if(stored){
-      try{
-        const cfg = JSON.parse(stored);
-        // merge with default items
+    try{
+      const res = await fetch(`${serverUrl}/api/compromisos?email=${encodeURIComponent(email)}&weekStart=${weekStart}`);
+      const json = await res.json();
+
+      if (json.ok && Array.isArray(json.rows) && json.rows.length > 0) {
+        // map rows to config items: Factor=tipo, Descripcion=descripcion, DiasCantidad=target, IdCompromiso
+        const cfg = json.rows.map(r => ({ tipo: r.Factor, descripcion: r.Descripcion, target: r.DiasCantidad, idCompromiso: r.IdCompromiso }));
         const merged = defaultItems.map(di => {
           const found = cfg.find(c=>c.tipo===di.tipo);
-          return { ...di, target: found ? found.target : 0 };
+          return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 0, idCompromiso: found ? found.idCompromiso : null };
         });
         setItems(merged);
         setAchieved(new Array(merged.length).fill(0));
         setShowModal(false);
-        // load saved checks for this week if any
-        const keyChecks = key + '-checks';
-        const storedChecks = JSON.parse(localStorage.getItem(keyChecks) || '{}');
-        setChecksByTipo(storedChecks || {});
-      }catch(e){
-        console.error('failed parse compromisos config', e);
+
+        // Cargar checks desde la BBDD
+        try {
+          const checksRes = await fetch(`${serverUrl}/api/registroCompromiso?email=${encodeURIComponent(email)}&weekStart=${weekStart}`);
+          const checksJson = await checksRes.json();
+          console.log('Checks cargados desde BBDD:', checksJson.checks);
+          if (checksJson.ok && checksJson.checks) {
+            setChecksByTipo(checksJson.checks);
+          } else {
+            setChecksByTipo({});
+          }
+        } catch(e) {
+          console.warn('failed to load checks from server', e);
+          setChecksByTipo({});
+        }
+      } else {
+        // No hay compromisos para esta semana, mostrar modal
         setShowModal(true);
-        // set defaults with zero targets
         const merged = defaultItems.map(di => ({ ...di, target: 0 }));
         setItems(merged);
         setAchieved(new Array(merged.length).fill(0));
+        setChecksByTipo({});
       }
-    }else{
-      // open modal to define weekly targets
+    }catch(e){
+      console.warn('failed to load compsemanal from server', e);
+      // En caso de error, mostrar modal
       setShowModal(true);
       const merged = defaultItems.map(di => ({ ...di, target: 0 }));
       setItems(merged);
@@ -123,7 +109,7 @@ export default function Compromisos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  const saveWeeklyConfig = (cfgItems) => {
+  const saveWeeklyConfig = async (cfgItems) => {
     // cfgItems is array {tipo, descripcion, target}
     // validate before saving: descripcion not empty and target between 1 and 7
     const invalid = cfgItems.some(it => !it.descripcion || String(it.descripcion).trim() === '' || !Number.isFinite(Number(it.target)) || Number(it.target) < 1 || Number(it.target) > 7);
@@ -134,48 +120,32 @@ export default function Compromisos() {
       return;
     }
 
-    const key = getMondayKey();
-    // normalize targets to numbers >=1
+    const weekStart = getMondayKey();
     const normalized = cfgItems.map(it => ({ ...it, target: Math.max(1, Number(it.target || 1)), descripcion: String(it.descripcion || '').trim() }));
-    localStorage.setItem(key, JSON.stringify(normalized));
-    // also persist to server compsemanal table if user available
     const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
     const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
-    if (email) {
-      (async ()=>{
-        try{
-          const weekStart = key.split('-').slice(-3).join('-');
-          // post each item as a row: tipo→Factor, descripcion→Descripcion, target→DiasCantidad
-          for (const it of normalized) {
-            await fetch(`${serverUrl}/api/compromisos`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, Factor: it.tipo, Descripcion: it.descripcion, DiasCantidad: it.target, Regis_Fecha: weekStart })
-            });
-          }
-        }catch(e){
-          console.warn('failed to save weekly config to server', e);
-        }
-      })();
+
+    if (!email) {
+      window.alert('Error: Usuario no autenticado');
+      return;
     }
-    // persist to current user's profile (in-memory)
-    if (typeof updateCurrentUserData === 'function') {
-      updateCurrentUserData(prev => ({
-        ...prev,
-        compromisos: {
-          ...(prev && prev.compromisos ? prev.compromisos : {}),
-          [key]: cfgItems
-        }
-      }));
+
+    try{
+      // Guardar cada compromiso en el servidor
+      for (const it of normalized) {
+        await fetch(`${serverUrl}/api/compromisos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, Factor: it.tipo, Descripcion: it.descripcion, DiasCantidad: it.target, Regis_Fecha: weekStart })
+        });
+      }
+
+      // Recargar datos desde el servidor para obtener los IdCompromiso
+      await loadDataFromServer();
+    }catch(e){
+      console.error('failed to save weekly config to server', e);
+      window.alert('Error al guardar compromisos. Por favor intenta de nuevo.');
     }
-    // update items state merging with descriptors
-    const merged = defaultItems.map(di => {
-      const found = normalized.find(c=>c.tipo===di.tipo);
-      return { ...di, descripcion: found ? found.descripcion : di.descripcion, target: found ? found.target : 1 };
-    });
-    setItems(merged);
-    setAchieved(new Array(merged.length).fill(0));
-    setShowModal(false);
   };
 
   const handleAchievedChange = (index, value) => {
@@ -187,17 +157,12 @@ export default function Compromisos() {
   };
 
   const handleChecksChange = async (tipo, checkedArray, idCompromiso) => {
-    const keyChecks = getMondayKey() + '-checks';
     try{
-      // Actualizar estado local inmediatamente
-      const existing = checksByTipo;
-      const next = { ...(existing || {}), [tipo]: checkedArray };
+      // Actualizar estado local inmediatamente para UI responsiva
+      const next = { ...(checksByTipo || {}), [tipo]: checkedArray };
       setChecksByTipo(next);
 
-      // Guardar en localStorage como backup
-      localStorage.setItem(keyChecks, JSON.stringify(next));
-
-      // Guardar en la BBDD si hay email y idCompromiso
+      // Guardar en la BBDD
       const email = (typeof updateCurrentUserData === 'function' && currentUser && currentUser.email) ? currentUser.email : (currentUser && currentUser.email ? currentUser.email : null);
       const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
@@ -215,21 +180,9 @@ export default function Compromisos() {
           console.log(`Checks guardados en BBDD para compromiso ${idCompromiso}`);
         } catch(e) {
           console.warn('Failed to save checks to server:', e);
+          // Revertir cambio local en caso de error
+          setChecksByTipo(checksByTipo);
         }
-      }
-
-      // also persist into user's profile (in-memory)
-      if (typeof updateCurrentUserData === 'function') {
-        updateCurrentUserData(prev => ({
-          ...prev,
-          compromisosChecks: {
-            ...(prev && prev.compromisosChecks ? prev.compromisosChecks : {}),
-            [keyChecks]: {
-              ...(prev && prev.compromisosChecks && prev.compromisosChecks[keyChecks] ? prev.compromisosChecks[keyChecks] : {}),
-              [tipo]: checkedArray
-            }
-          }
-        }));
       }
     }catch(e){
       console.error('save compromisos checks failed', e);

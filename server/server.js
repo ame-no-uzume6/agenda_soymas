@@ -153,11 +153,11 @@ app.get('/api/tasks', async (req, res) => {
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
     if (date) {
-      // return FechaHora and FechaRegistro as formatted strings to avoid JS Date->ISO conversions
-      const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro FROM tareascalendario WHERE IdUsuario = ? AND FechaRegistro = ?", [userId, date]);
+      // return FechaHora, FechaRegistro and activa as formatted strings to avoid JS Date->ISO conversions
+      const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro, activa FROM tareascalendario WHERE IdUsuario = ? AND FechaRegistro = ?", [userId, date]);
       return res.json({ ok: true, rows });
     }
-    const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro FROM tareascalendario WHERE IdUsuario = ? ORDER BY FechaHora DESC", [userId]);
+    const [rows] = await pool.query("SELECT IdTarea, Descripcion, DATE_FORMAT(FechaHora, '%Y-%m-%d %H:%i:%s') AS FechaHora, DATE_FORMAT(FechaRegistro, '%Y-%m-%d') AS FechaRegistro, activa FROM tareascalendario WHERE IdUsuario = ? ORDER BY FechaHora DESC", [userId]);
     res.json({ ok: true, rows });
   } catch (e) {
     console.error(e);
@@ -206,6 +206,22 @@ app.delete('/api/tasks/:id', async (req, res) => {
   }
 });
 
+// PATCH: actualizar solo el campo activa de una tarea
+app.patch('/api/tasks/:id/toggle', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { activa } = req.body;
+    if (!id) return res.status(400).json({ ok: false, message: 'Missing id' });
+    if (activa === undefined) return res.status(400).json({ ok: false, message: 'Missing activa field' });
+
+    await pool.query('UPDATE tareascalendario SET activa = ? WHERE IdTarea = ?', [activa ? 1 : 0, id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, message: 'Server error' });
+  }
+});
+
 // Compromisos endpoints (compsemanal)
 app.get('/api/compromisos', async (req, res) => {
   try {
@@ -234,8 +250,29 @@ app.post('/api/compromisos', async (req, res) => {
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
     const regDate = Regis_Fecha || new Date().toISOString().slice(0,10);
-    const [result] = await pool.query('INSERT INTO compsemanal (IdUsuario, Factor, Descripcion, DiasCantidad, Regis_Fecha) VALUES (?, ?, ?, ?, ?)', [userId, Factor, Descripcion || '', DiasCantidad || 0, regDate]);
-    res.json({ ok: true, id: result.insertId });
+
+    // Verificar si ya existe un compromiso para este usuario, factor y fecha
+    const [existing] = await pool.query(
+      'SELECT IdCompromiso FROM compsemanal WHERE IdUsuario = ? AND Factor = ? AND Regis_Fecha = ?',
+      [userId, Factor, regDate]
+    );
+
+    if (existing && existing.length > 0) {
+      // Actualizar el compromiso existente
+      const idCompromiso = existing[0].IdCompromiso;
+      await pool.query(
+        'UPDATE compsemanal SET Descripcion = ?, DiasCantidad = ? WHERE IdCompromiso = ?',
+        [Descripcion || '', DiasCantidad || 0, idCompromiso]
+      );
+      res.json({ ok: true, id: idCompromiso });
+    } else {
+      // Insertar nuevo compromiso
+      const [result] = await pool.query(
+        'INSERT INTO compsemanal (IdUsuario, Factor, Descripcion, DiasCantidad, Regis_Fecha) VALUES (?, ?, ?, ?, ?)',
+        [userId, Factor, Descripcion || '', DiasCantidad || 0, regDate]
+      );
+      res.json({ ok: true, id: result.insertId });
+    }
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false, message: 'Server error' });
@@ -245,9 +282,20 @@ app.post('/api/compromisos', async (req, res) => {
 app.put('/api/compromisos/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const { Factor, Descripcion, DiasCantidad } = req.body;
+    const { email, Factor, Descripcion, DiasCantidad } = req.body;
     if (!id) return res.status(400).json({ ok: false, message: 'Missing id' });
-    await pool.query('UPDATE compsemanal SET Factor = ?, Descripcion = ?, DiasCantidad = ? WHERE IdCompromiso = ?', [Factor || '', Descripcion || '', DiasCantidad || 0, id]);
+    if (!email) return res.status(400).json({ ok: false, message: 'Missing email' });
+
+    // Verificar que el usuario sea dueño del compromiso
+    const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
+    if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
+    const userId = users[0].IdUsuario;
+
+    // Actualizar solo si el compromiso pertenece al usuario
+    await pool.query(
+      'UPDATE compsemanal SET Factor = ?, Descripcion = ?, DiasCantidad = ? WHERE IdCompromiso = ? AND IdUsuario = ?',
+      [Factor || '', Descripcion || '', DiasCantidad || 0, id, userId]
+    );
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
