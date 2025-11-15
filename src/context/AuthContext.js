@@ -5,9 +5,17 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }){
   const [currentUser, setCurrentUser] = useState(null);
 
-  // on mount, do nothing (we removed localStorage). App requires explicit login.
+  // on mount, restore user from localStorage if exists
   useEffect(()=>{
-    // noop
+    try {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+      }
+    } catch (e) {
+      console.warn('Failed to restore user from localStorage', e);
+    }
   }, []);
 
   const serverUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
@@ -25,6 +33,8 @@ export function AuthProvider({ children }){
       const userRes = await fetch(`${serverUrl}/api/user?email=${encodeURIComponent(email)}`);
       const userData = await userRes.json();
       if(!userData.ok) return { ok: false, message: 'Failed to load user' };
+      // Save user to localStorage for persistence
+      localStorage.setItem('currentUser', JSON.stringify(userData.user));
       setCurrentUser(userData.user);
       return { ok: true };
     }catch(e){
@@ -48,6 +58,8 @@ export function AuthProvider({ children }){
           }
         }
       }
+      // Remove user from localStorage
+      localStorage.removeItem('currentUser');
     }catch(e){
       console.warn('logout cleanup failed', e);
     }
@@ -79,6 +91,8 @@ export function AuthProvider({ children }){
       const userRes = await fetch(`${serverUrl}/api/user?email=${encodeURIComponent(email)}`);
       const userData = await userRes.json();
       if(!userData.ok) return { ok:false, message: 'Usuario no encontrado' };
+      // Save user to localStorage for persistence
+      localStorage.setItem('currentUser', JSON.stringify(userData.user));
       setCurrentUser(userData.user);
       return { ok: true };
     }catch(e){
