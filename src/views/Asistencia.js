@@ -263,16 +263,16 @@ export default function Asistencia() {
 
       <div className="contenedor resumen-contenedor">
         <div className='dias-asistidos'>
-          <div className='numero'>{daysAttended} {daysAttended === 1 ? 'día' : 'días'}</div>
-          <div>asistidos</div>
+          <div className='numero'>{daysAttended} {daysAttended === 1 ? 'Día' : 'Días'}</div>
+          <div>Asistidos</div>
         </div>
         <div className='billetera-virtual'>
           <div className='numero'>${walletAmount.toLocaleString()}</div>
-          <div>Billetera Virtual</div>
+          <div>Billetera Virtual Mensual</div>
         </div>
         <div className='dias-ausentes'>
-          <div className='numero'>{daysAbsent} {daysAbsent === 1 ? 'día' : 'días'}</div>
-          <div>ausente</div>          
+          <div className='numero'>{daysAbsent} {daysAbsent === 1 ? 'Día' : 'Días'}</div>
+          <div>Ausente</div>          
         </div>
       </div>
 
