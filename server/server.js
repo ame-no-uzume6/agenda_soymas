@@ -169,6 +169,14 @@ app.post('/api/tasks', async (req, res) => {
   try {
     const { email, FechaHora, Descripcion } = req.body;
     if (!email || !Descripcion) return res.status(400).json({ ok: false, message: 'Missing params' });
+
+    // Validación de entrada
+    if (typeof Descripcion !== 'string' || Descripcion.trim().length === 0) {
+      return res.status(400).json({ ok: false, message: 'Descripción inválida' });
+    }
+    if (Descripcion.length > 500) {
+      return res.status(400).json({ ok: false, message: 'Descripción demasiado larga (máximo 500 caracteres)' });
+    }
     const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
@@ -246,6 +254,27 @@ app.post('/api/compromisos', async (req, res) => {
   try {
     const { email, Factor, Descripcion, DiasCantidad, Regis_Fecha } = req.body;
     if (!email || !Factor) return res.status(400).json({ ok: false, message: 'Missing params' });
+
+    // Validación de Factor
+    const validFactors = ['DEPORTE', 'SUEÑO', 'NUTRICIÓN', 'SALUD MENTAL', 'MINDFULNESS', 'RELACIONES'];
+    if (!validFactors.includes(Factor)) {
+      return res.status(400).json({ ok: false, message: 'Factor inválido' });
+    }
+
+    // Validación de Descripcion
+    if (!Descripcion || typeof Descripcion !== 'string' || Descripcion.trim().length === 0) {
+      return res.status(400).json({ ok: false, message: 'Descripción inválida' });
+    }
+    if (Descripcion.length > 500) {
+      return res.status(400).json({ ok: false, message: 'Descripción demasiado larga (máximo 500 caracteres)' });
+    }
+
+    // Validación de DiasCantidad
+    const daysNum = Number(DiasCantidad);
+    if (!Number.isInteger(daysNum) || daysNum < 1 || daysNum > 7) {
+      return res.status(400).json({ ok: false, message: 'DiasCantidad debe estar entre 1 y 7' });
+    }
+
     const [users] = await pool.query('SELECT IdUsuario FROM usuarios WHERE Correo = ?', [email]);
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
@@ -373,10 +402,10 @@ app.post('/api/registroCompromiso', async (req, res) => {
     if (!users || users.length === 0) return res.status(404).json({ ok: false, message: 'User not found' });
     const userId = users[0].IdUsuario;
 
-    // Obtener fecha de inicio de la semana del compromiso
-    const [compRows] = await pool.query('SELECT Regis_Fecha FROM compsemanal WHERE IdCompromiso = ?', [idCompromiso]);
+    // Obtener fecha de inicio de la semana del compromiso Y verificar que pertenece al usuario
+    const [compRows] = await pool.query('SELECT Regis_Fecha FROM compsemanal WHERE IdCompromiso = ? AND IdUsuario = ?', [idCompromiso, userId]);
     if (!compRows || compRows.length === 0) {
-      return res.status(404).json({ ok: false, message: 'Compromiso not found' });
+      return res.status(404).json({ ok: false, message: 'Compromiso not found or unauthorized' });
     }
     const weekStart = compRows[0].Regis_Fecha;
 
